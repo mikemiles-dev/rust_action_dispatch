@@ -10,6 +10,8 @@ use std::net::SocketAddr;
 
 use tracing::{error, info};
 
+const SERVER_ADDRESS: &str = "127.0.0.1:8080";
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Set up tracing subscriber for logging
@@ -20,9 +22,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global default subscriber");
 
-    let addr = "127.0.0.1:8080";
-    let listener = TcpListener::bind(addr).await?;
-    info!("Listening on: {}", addr);
+    info!("Binding on address: {}", SERVER_ADDRESS);
+    let listener = TcpListener::bind(SERVER_ADDRESS).await?;
+    info!("Listening on: {}", SERVER_ADDRESS);
 
     let (tx, mut rx) = mpsc::channel::<String>(32);
 
@@ -41,25 +43,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Spawn a task to connect to the server and send data
     spawn(async move {
-        let server_addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
-        match TcpStream::connect(server_addr).await {
-            Ok(mut stream) => {
-                info!("Connected to server!");
-                while let Some(message) = rx.recv().await {
-                    info!("Sending: {}", message);
-                    if let Err(e) = stream.write_all(message.as_bytes()).await {
-                        error!("Error sending data: {}", e);
-                        break;
-                    }
-                    if let Err(e) = stream.write_all(b"\n").await {
-                        // Add newline as a message delimiter
-                        error!("Error sending newline: {}", e);
-                        break;
+        let agents = Vec::from(["127.0.0.1:8081"]);
+        for agent in agents.iter() {
+            match TcpStream::connect(agent).await {
+                Ok(mut stream) => {
+                    info!("Connected to server!");
+                    while let Some(message) = rx.recv().await {
+                        info!("Sending: {}", message);
+                        if let Err(e) = stream.write_all(message.as_bytes()).await {
+                            error!("Error sending data: {}", e);
+                            break;
+                        }
+                        if let Err(e) = stream.write_all(b"\n").await {
+                            // Add newline as a message delimiter
+                            error!("Error sending newline: {}", e);
+                            break;
+                        }
                     }
                 }
-            }
-            Err(e) => {
-                error!("Error connecting to server: {}", e);
+                Err(e) => {
+                    error!("Error connecting to server: {}", e);
+                }
             }
         }
     });
