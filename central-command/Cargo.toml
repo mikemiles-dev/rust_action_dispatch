@@ -1,0 +1,15 @@
+[package]
+name = "central-command"
+version.workspace = true
+edition.workspace = true
+authors.workspace =  true
+publish = false
+
+
+[dependencies]
+core-logic.workspace = true
+log.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
