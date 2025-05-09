@@ -4,6 +4,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::spawn;
 use tokio::sync::mpsc;
+use uuid::Uuid;
 
 use std::error::Error;
 use std::net::SocketAddr;
@@ -43,35 +44,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Spawn a task to connect to the server and send data
     spawn(async move {
-        let agents = Vec::from(["127.0.0.1:8081"]);
-
-        for agent in agents.into_iter() {
-            match TcpStream::connect(agent).await {
-                Ok(mut stream) => {
-                    info!("Connected to agent {agent}!");
-
-                    stream
-                        .write_all("Hello from command!".as_bytes())
-                        .await
-                        .unwrap();
-                    // while let Some(message) = rx.recv().await {
-                    //     info!("Sending: {}", message);
-                    //     if let Err(e) = stream.write_all(message.as_bytes()).await {
-                    //         error!("Error sending data: {}", e);
-                    //         break;
-                    //     }
-                    //     if let Err(e) = stream.write_all(b"\n").await {
-                    //         // Add newline as a message delimiter
-                    //         error!("Error sending newline: {}", e);
-                    //         break;
-                    //     }
-                    // }
-                }
-                Err(e) => {
-                    error!("Error connecting to agent {agent}: {e}");
-                }
-            }
-        }
+        AgentManager::default().start().await;
     });
 
     // Keep the main task alive
@@ -81,45 +54,52 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-// async fn handle_connection(
-//     mut stream: TcpStream,
-//     tx: mpsc::Sender<String>,
-// ) -> Result<(), Box<dyn Error>> {
-//     let addr = stream.peer_addr()?;
-//     let mut buffer = [0; 1024];
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Agent {
+    address: SocketAddr,
+}
 
-//     loop {
-//         match stream.read(&mut buffer).await {
-//             Ok(0) => {
-//                 info!("Connection with {} closed by peer.", addr);
-//                 break;
-//             }
-//             Ok(n) => {
-//                 match String::from_utf8(buffer[..n].to_vec()) {
-//                     Ok(message) => {
-//                         info!("Received from {}: {}", addr, message.trim());
-//                         // Optionally, broadcast the received message to other connected clients
-//                         if tx
-//                             .send(format!("{}: {}", addr, message.trim()))
-//                             .await
-//                             .is_err()
-//                         {
-//                             error!("Error sending received message to broadcast channel");
-//                             break;
-//                         }
-//                     }
-//                     Err(e) => {
-//                         error!("Received invalid UTF-8 from {}: {}", addr, e);
-//                         break;
-//                     }
-//                 }
-//             }
-//             Err(e) => {
-//                 error!("Error reading from {}: {}", addr, e);
-//                 break;
-//             }
-//         }
-//     }
+#[derive(Debug, Default)]
+pub struct AgentManager {
+    agents: Vec<Agent>,
+    connected_agents: Vec<Agent>,
+}
 
-//     Ok(())
-// }
+impl AgentManager {
+
+    fn populate_agents(&mut self) {
+        self.agents = Vec::from([Agent { address: "127.0.0.1:8081".parse().unwrap() }]);
+    }
+
+    async fn start(&mut self) {
+
+        loop {
+            self.populate_agents();
+
+            let unconnected_agents = self.agents.iter()
+                .filter(|agent| !self.connected_agents.contains(agent))
+                .cloned()
+                .collect::<Vec<_>>();
+
+            for agent in unconnected_agents.iter() {
+                match TcpStream::connect(agent.address).await {
+                    Ok(mut stream) => {
+                        info!("Connected to agent {}!", agent.address);
+
+                        self.connected_agents.push(agent.clone());
+
+                        stream
+                            .write_all("Hello from command!".as_bytes())
+                            .await
+                            .unwrap();
+
+                    }
+                    Err(e) => {
+                        error!("Error connecting to agent {}: {}", agent.address, e);
+                    }
+                }
+            }
+    }
+    }
+}
+
