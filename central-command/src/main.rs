@@ -23,11 +23,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global default subscriber");
 
-    info!("Binding on address: {}", SERVER_ADDRESS);
-    let listener = TcpListener::bind(SERVER_ADDRESS).await?;
-    info!("Listening on: {}", SERVER_ADDRESS);
+    // info!("Binding on address: {}", SERVER_ADDRESS);
+    // let listener = TcpListener::bind(SERVER_ADDRESS).await?;
+    // info!("Listening on: {}", SERVER_ADDRESS);
 
-    let (tx, mut rx) = mpsc::channel::<String>(32);
+    // let (tx, mut rx) = mpsc::channel::<String>(32);
 
     // // Spawn a task to handle incoming connections
     // spawn(async move {
@@ -66,40 +66,59 @@ pub struct AgentManager {
 }
 
 impl AgentManager {
-
     fn populate_agents(&mut self) {
-        self.agents = Vec::from([Agent { address: "127.0.0.1:8081".parse().unwrap() }]);
+        self.agents = Vec::from([Agent {
+            address: "127.0.0.1:8081".parse().unwrap(),
+        }]);
+    }
+
+    async fn check_unconnected(&mut self) {
+        info!("Checking for unconnected agents...");
+        let unconnected_agents = self.get_unconnected();
+        if !unconnected_agents.is_empty() {
+            info!(
+                "Found unconnected agents: {:?}",
+                unconnected_agents
+                    .iter()
+                    .map(|a| a.address)
+                    .collect::<Vec<_>>()
+            );
+            self.connect_unconnected(unconnected_agents).await;
+        }
+    }
+
+    fn get_unconnected(&mut self) -> Vec<Agent> {
+        self.agents
+            .iter()
+            .filter(|agent| !self.connected_agents.contains(agent))
+            .cloned()
+            .collect()
+    }
+
+    async fn connect_unconnected(&mut self, unconnected_agents: Vec<Agent>) {
+        for agent in unconnected_agents.into_iter() {
+            match TcpStream::connect(agent.address).await {
+                Ok(mut stream) => {
+                    info!("Connected to agent {}!", agent.address);
+                    self.connected_agents.push(agent.clone());
+                    stream
+                        .write_all("Hello from command!".as_bytes())
+                        .await
+                        .unwrap();
+                }
+                Err(e) => {
+                    error!("Error connecting to agent {}: {}", agent.address, e);
+                }
+            }
+        }
     }
 
     async fn start(&mut self) {
+        self.populate_agents();
 
         loop {
-            self.populate_agents();
-
-            let unconnected_agents = self.agents.iter()
-                .filter(|agent| !self.connected_agents.contains(agent))
-                .cloned()
-                .collect::<Vec<_>>();
-
-            for agent in unconnected_agents.iter() {
-                match TcpStream::connect(agent.address).await {
-                    Ok(mut stream) => {
-                        info!("Connected to agent {}!", agent.address);
-
-                        self.connected_agents.push(agent.clone());
-
-                        stream
-                            .write_all("Hello from command!".as_bytes())
-                            .await
-                            .unwrap();
-
-                    }
-                    Err(e) => {
-                        error!("Error connecting to agent {}: {}", agent.address, e);
-                    }
-                }
-            }
-    }
+            self.check_unconnected().await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        }
     }
 }
-
