@@ -1,6 +1,8 @@
 use std::ops::Deref;
 
-use rkyv::{Archive, deserialize, Deserialize, Serialize, with::ArchiveWith, with::Inline, rancor::Error};
+use rkyv::{
+    Archive, Deserialize, Serialize, deserialize, rancor::Error, with::ArchiveWith, with::Inline,
+};
 
 use uuid::Uuid;
 
@@ -14,6 +16,14 @@ pub enum Message {
     Ping,
 }
 
+impl From<&ArchivedMessage> for Message {
+    fn from(archived: &ArchivedMessage) -> Self {
+        match archived {
+            ArchivedMessage::Ping => Message::Ping,
+        }
+    }
+}
+
 impl From<Message> for Vec<u8> {
     fn from(message: Message) -> Self {
         let serialized = rkyv::to_bytes::<Error>(&message).unwrap();
@@ -23,11 +33,10 @@ impl From<Message> for Vec<u8> {
 
 impl From<Vec<u8>> for Message {
     fn from(bytes: Vec<u8>) -> Self {
-        let archived = rkyv::access::<ArchivedMessage, Error>(&bytes).unwrap().clone().into();
-        archived
-
+        let archived = rkyv::access::<ArchivedMessage, Error>(&bytes).unwrap();
+        archived.into()
     }
-}   
+}
 
 pub struct Communication {
     pub id: Uuid,

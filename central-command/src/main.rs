@@ -7,10 +7,11 @@ use tokio::spawn;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
+use std::collections::HashMap;
 use std::error::Error;
 use std::net::SocketAddr;
 
-use tracing::{error, debug, info};
+use tracing::{debug, error, info};
 
 const SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
@@ -55,7 +56,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Agent {
     address: SocketAddr,
 }
@@ -63,7 +64,7 @@ pub struct Agent {
 #[derive(Debug, Default)]
 pub struct AgentManager {
     agents: Vec<Agent>,
-    connected_agents: Vec<Agent>,
+    connected_agents: HashMap<Agent, TcpStream>,
 }
 
 impl AgentManager {
@@ -91,7 +92,7 @@ impl AgentManager {
     fn get_unconnected(&mut self) -> Vec<Agent> {
         self.agents
             .iter()
-            .filter(|agent| !self.connected_agents.contains(agent))
+            .filter(|agent| !self.connected_agents.contains_key(agent))
             .cloned()
             .collect()
     }
@@ -101,15 +102,29 @@ impl AgentManager {
             match TcpStream::connect(agent.address).await {
                 Ok(mut stream) => {
                     info!("Connected to agent {}!", agent.address);
-                    self.connected_agents.push(agent.clone());
-                    let message: Vec<u8> = Message::Ping.into();
-                    stream
-                        .write_all(&message)
-                        .await
-                        .unwrap();
+                    self.connected_agents.insert(agent.clone(), stream);
                 }
                 Err(e) => {
                     error!("Error connecting to agent {}: {}", agent.address, e);
+                }
+            }
+        }
+    }
+
+    async fn check_connected(&mut self) {
+        for agent in self.connected_agents.keys().cloned().collect::<Vec<_>>() {
+            match TcpStream::connect(agent.address).await {
+                Ok(mut stream) => {
+                    debug!("Pinging agent {}!", agent.address);
+                    let message: Vec<u8> = Message::Ping.into();
+                    stream.write_all(&message).await.unwrap();
+                }
+                Err(e) => {
+                    error!("Error connecting to agent {}: {}", agent.address, e);
+                    if let Some(stream) = self.connected_agents.remove(&agent) {
+                        info!("Disconnected from agent {}!", agent.address);
+                        drop(stream);
+                    }
                 }
             }
         }
@@ -120,6 +135,9 @@ impl AgentManager {
 
         loop {
             self.check_unconnected().await;
+
+            self.check_connected().await;
+
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
     }

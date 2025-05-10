@@ -1,5 +1,6 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
+use tokio::spawn;
 
 use tracing::info;
 
@@ -40,6 +41,31 @@ impl ConnectionManager {
     pub async fn listen(&self) -> io::Result<()> {
         info!("Listening on: {}", self.listener.local_addr()?);
 
-        loop {}
+        loop {
+            let (mut socket, addr) = self.listener.accept().await?;
+            info!("New connection from: {}", addr);
+
+            // Spawn a new task to handle the connection
+            spawn(async move {
+                // Read data from the socket
+                let mut buf = vec![0; 1024];
+                match socket.read(&mut buf).await {
+                    Ok(n) => {
+                        //parintln!("Read {} bytes from {}", n, addr);
+                        let message = Message::from(buf[..n].to_vec());
+                        info!("Received message: {:?} from {}", message, addr);
+                        if let Err(e) = socket.write(&buf[..n]).await {
+                            info!("Error writing to socket: {:?}", e);
+                        };
+                    }
+                    Err(e) => {
+                        info!("Error reading from socket: {:?}", e);
+                    }
+                }
+
+                // Close the connection
+                info!("Connection closed with {}", addr);
+            });
+        }
     }
 }
