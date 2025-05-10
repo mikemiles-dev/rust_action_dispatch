@@ -1,5 +1,6 @@
 mod agent;
 
+use core_logic::communications::Message;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::spawn;
@@ -9,7 +10,7 @@ use uuid::Uuid;
 use std::error::Error;
 use std::net::SocketAddr;
 
-use tracing::{error, info};
+use tracing::{error, debug, info};
 
 const SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
@@ -73,7 +74,7 @@ impl AgentManager {
     }
 
     async fn check_unconnected(&mut self) {
-        info!("Checking for unconnected agents...");
+        debug!("Checking for unconnected agents...");
         let unconnected_agents = self.get_unconnected();
         if !unconnected_agents.is_empty() {
             info!(
@@ -101,8 +102,9 @@ impl AgentManager {
                 Ok(mut stream) => {
                     info!("Connected to agent {}!", agent.address);
                     self.connected_agents.push(agent.clone());
+                    let message: Vec<u8> = Message::Ping.into();
                     stream
-                        .write_all("Hello from command!".as_bytes())
+                        .write_all(&message)
                         .await
                         .unwrap();
                 }

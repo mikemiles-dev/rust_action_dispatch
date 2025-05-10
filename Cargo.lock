@@ -168,6 +168,7 @@ name = "core-logic"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "rkyv",
  "uuid",
 ]
 
