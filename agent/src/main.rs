@@ -2,7 +2,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::spawn;
 
-use tracing::info;
+use tracing::{debug, error, info};
 
 use core_logic::communications::{Communication, Direction, Message};
 
@@ -42,29 +42,42 @@ impl ConnectionManager {
         info!("Listening on: {}", self.listener.local_addr()?);
 
         loop {
-            let (mut socket, addr) = self.listener.accept().await?;
-            info!("New connection from: {}", addr);
+            let (mut stream, peer_addr) = self.listener.accept().await?;
+            info!("New connection from: {}", peer_addr);
 
             // Spawn a new task to handle the connection
             spawn(async move {
-                // Read data from the socket
-                let mut buf = vec![0; 1024];
-                match socket.read(&mut buf).await {
-                    Ok(n) => {
-                        //parintln!("Read {} bytes from {}", n, addr);
-                        let message = Message::from(buf[..n].to_vec());
-                        info!("Received message: {:?} from {}", message, addr);
-                        if let Err(e) = socket.write(&buf[..n]).await {
-                            info!("Error writing to socket: {:?}", e);
-                        };
-                    }
-                    Err(e) => {
-                        info!("Error reading from socket: {:?}", e);
+                let mut buffer = [0; 1024];
+
+                loop {
+                    tokio::select! {
+                        result = stream.read(&mut buffer) => {
+                            match result {
+                                Ok(0) => {
+                                    info!("Connection with {} closed by peer.", peer_addr);
+                                    break; // Connection closed by the client
+                                }
+                                Ok(n) => {
+                                    let received = buffer[..n].to_vec();
+                                    let message: Message = received.into();
+                                    info!("Received: {:?} from {}", message, peer_addr);
+
+                                    // // Echo the data back to the client (example of keeping the connection active)
+                                    // if let Err(e) = stream.write_all(received).await {
+                                    //     error!("Error writing to {}: {}", peer_addr, e);
+                                    //     break;
+                                    // }
+                                }
+                                Err(e) => {
+                                    error!("Error reading from {}: {}", peer_addr, e);
+                                    break;
+                                }
+                            }
+                        }
+                        // You could add other asynchronous tasks here that might interact with this connection
+                        // For example, a timer or a channel receiver.
                     }
                 }
-
-                // Close the connection
-                info!("Connection closed with {}", addr);
             });
         }
     }

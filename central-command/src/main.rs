@@ -10,6 +10,7 @@ use uuid::Uuid;
 use std::collections::HashMap;
 use std::error::Error;
 use std::net::SocketAddr;
+use std::time::{Duration, Instant};
 
 use tracing::{debug, error, info};
 
@@ -100,7 +101,7 @@ impl AgentManager {
     async fn connect_unconnected(&mut self, unconnected_agents: Vec<Agent>) {
         for agent in unconnected_agents.into_iter() {
             match TcpStream::connect(agent.address).await {
-                Ok(mut stream) => {
+                Ok(stream) => {
                     info!("Connected to agent {}!", agent.address);
                     self.connected_agents.insert(agent.clone(), stream);
                 }
@@ -112,33 +113,52 @@ impl AgentManager {
     }
 
     async fn check_connected(&mut self) {
-        for agent in self.connected_agents.keys().cloned().collect::<Vec<_>>() {
-            match TcpStream::connect(agent.address).await {
-                Ok(mut stream) => {
-                    debug!("Pinging agent {}!", agent.address);
-                    let message: Vec<u8> = Message::Ping.into();
-                    stream.write_all(&message).await.unwrap();
+        let mut agents_to_remove = Vec::new();
+
+        for (agent, stream) in self.connected_agents.iter_mut() {
+            debug!("Pinging agent {}!", agent.address);
+            let message: Vec<u8> = Message::Ping.into();
+            match stream.write_all(&message).await {
+                Ok(_) => {
+                    debug!("Pinged agent {} successfully!", agent.address);
                 }
                 Err(e) => {
-                    error!("Error connecting to agent {}: {}", agent.address, e);
-                    if let Some(stream) = self.connected_agents.remove(&agent) {
-                        info!("Disconnected from agent {}!", agent.address);
-                        drop(stream);
-                    }
+                    error!("Error pinging agent {}: {}", agent.address, e);
+                    agents_to_remove.push(agent.clone());
                 }
             }
+        }
+
+        for agent in agents_to_remove {
+            self.connected_agents.remove(&agent);
         }
     }
 
     async fn start(&mut self) {
+        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 10;
+        const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 5;
+
+        let mut last_connected_check = Instant::now()
+            .checked_sub(Duration::from_secs(CONNECT_CHECK_INTERVAL_SECONDS))
+            .unwrap_or(Instant::now());
+        let mut last_unconnected_check = Instant::now()
+            .checked_sub(Duration::from_secs(UNCONNECT_CHECK_INTERVAL_SECONDS))
+            .unwrap_or(Instant::now());
+
         self.populate_agents();
 
         loop {
-            self.check_unconnected().await;
+            if last_connected_check.elapsed().as_secs() > CONNECT_CHECK_INTERVAL_SECONDS {
+                self.check_connected().await;
+                last_connected_check = Instant::now();
+            }
 
-            self.check_connected().await;
+            if last_unconnected_check.elapsed().as_secs() > UNCONNECT_CHECK_INTERVAL_SECONDS {
+                self.check_unconnected().await;
+                last_unconnected_check = Instant::now();
+            }
 
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
     }
 }
