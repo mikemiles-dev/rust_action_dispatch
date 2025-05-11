@@ -139,6 +139,14 @@ impl AgentManager {
         loop {
             if last_agent_db_check.elapsed().as_secs() > AGENT_DB_CHECK_INTERVAL_SECONDS {
                 self.populate_agents().await;
+                info!(
+                    "Connected agents are: {{{}}}",
+                    self.agents
+                        .iter()
+                        .map(|a| format!("{} => {}", a.name, a.address))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
                 last_agent_db_check = Instant::now();
             }
 
