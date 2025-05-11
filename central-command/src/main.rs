@@ -5,7 +5,7 @@ use tokio::spawn;
 use tracing::info;
 
 use agent::AgentManager;
-use connection_manager::ConnectionManager;
+use connection_manager::CommandReceiver;
 use std::error::Error;
 
 #[tokio::main]
@@ -19,10 +19,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .expect("Failed to set global default subscriber");
 
     spawn(async move {
-        let mut connection_manager = ConnectionManager::try_new()
+        let mut receiver = CommandReceiver::try_new()
             .await
             .expect("Failed to create connection manager");
-        connection_manager
+        receiver
             .listen()
             .await
             .expect("Failed to listen for connections");

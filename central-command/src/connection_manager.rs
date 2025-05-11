@@ -11,17 +11,17 @@ use crate::agent::DB_AGENTS;
 
 const SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
-pub struct ConnectionManager {
+pub struct CommandReceiver {
     listener: TcpListener,
 }
 
-impl ConnectionManager {
+impl CommandReceiver {
     pub async fn try_new() -> Result<Self, Box<dyn Error>> {
         let listener = TcpListener::bind(SERVER_ADDRESS)
             .await
             .expect("Failed to bind to address");
 
-        Ok(ConnectionManager { listener })
+        Ok(CommandReceiver { listener })
     }
 
     pub async fn listen(&mut self) -> Result<(), Box<dyn Error>> {
