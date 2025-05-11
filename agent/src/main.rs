@@ -158,8 +158,6 @@ impl ConnectionManager {
                             }
                         }
                     }
-                    // You could add other asynchronous tasks here that might interact with this connection
-                    // For example, a timer or a channel receiver.
                 }
             }
         }
