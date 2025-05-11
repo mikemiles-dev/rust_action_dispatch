@@ -4,11 +4,15 @@ use tokio::net::TcpStream;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info};
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
-pub static DB_AGENTS: RwLock<Vec<SocketAddr>> = RwLock::const_new(vec![]);
+use std::sync::LazyLock;
+
+pub static DB_AGENTS: LazyLock<RwLock<HashSet<SocketAddr>>> =
+    LazyLock::new(|| RwLock::new(HashSet::new()));
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Agent {
@@ -17,7 +21,7 @@ pub struct Agent {
 
 #[derive(Debug, Default)]
 pub struct AgentManager {
-    agents: Vec<Agent>,
+    agents: HashSet<Agent>,
     connected_agents: HashMap<Agent, TcpStream>,
 }
 
@@ -27,7 +31,7 @@ impl AgentManager {
         let agents = agents
             .iter()
             .map(|addr| Agent { address: *addr })
-            .collect::<Vec<_>>();
+            .collect::<HashSet<_>>();
         self.agents = agents;
     }
 

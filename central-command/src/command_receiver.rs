@@ -54,7 +54,7 @@ impl CommandReceiver {
                             Message::RegisterAgent(agent_port) => {
                                 let mut agent_addr = peer_addr;
                                 agent_addr.set_port(agent_port);
-                                DB_AGENTS.write().await.push(agent_addr);
+                                DB_AGENTS.write().await.insert(agent_addr);
                             }
                         }
                     }
