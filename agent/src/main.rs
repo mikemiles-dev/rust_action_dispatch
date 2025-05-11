@@ -2,9 +2,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::spawn;
 
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
-use core_logic::communications::{Communication, Direction, Message};
+use core_logic::communications::Message;
 
 use std::io;
 
@@ -48,7 +48,13 @@ impl ConnectionManager {
             Ok(mut stream) => {
                 info!("Connected to server at {}", SERVER_ADDRESS);
                 let message = Message::RegisterAgent(AGENT_STRING.to_string());
-                let serialized: Vec<u8> = message.into();
+                let serialized: Vec<u8> = match message.try_into() {
+                    Ok(msg) => msg,
+                    Err(e) => {
+                        error!("Failed to serialize message: {}", e);
+                        return;
+                    }
+                };
                 if let Err(e) = stream.write_all(&serialized).await {
                     error!("Error writing to server: {}", e);
                 }
@@ -80,7 +86,13 @@ impl ConnectionManager {
                                 }
                                 Ok(n) => {
                                     let received = buffer[..n].to_vec();
-                                    let message: Message = received.into();
+                                    let message: Message = match received.try_into() {
+                                        Ok(msg) => msg,
+                                        Err(e) => {
+                                            error!("Failed to parse message: {}", e);
+                                            continue;
+                                        }
+                                    };
                                     info!("Received: {:?} from {}", message, peer_addr);
 
                                     // // Echo the data back to the client (example of keeping the connection active)

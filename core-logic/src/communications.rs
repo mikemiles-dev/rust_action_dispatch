@@ -1,9 +1,4 @@
-use std::os::unix::net::SocketAddr;
-
-use rkyv::{
-    Archive, Deserialize, Serialize, deserialize, rancor::Error, with::ArchiveWith, with::Inline,
-};
-
+use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
 use uuid::Uuid;
 
 pub enum Direction {
@@ -26,17 +21,21 @@ impl From<&ArchivedMessage> for Message {
     }
 }
 
-impl From<Message> for Vec<u8> {
-    fn from(message: Message) -> Self {
-        let serialized = rkyv::to_bytes::<Error>(&message).unwrap();
-        serialized.to_vec()
+impl TryFrom<Message> for Vec<u8> {
+    type Error = Error;
+
+    fn try_from(message: Message) -> Result<Vec<u8>, Error> {
+        let serialized = rkyv::to_bytes::<Error>(&message)?;
+        Ok(serialized.to_vec())
     }
 }
 
-impl From<Vec<u8>> for Message {
-    fn from(bytes: Vec<u8>) -> Self {
-        let archived = rkyv::access::<ArchivedMessage, Error>(&bytes).unwrap();
-        archived.into()
+impl TryFrom<Vec<u8>> for Message {
+    type Error = Error;
+
+    fn try_from(bytes: Vec<u8>) -> Result<Self, Error> {
+        let archived = rkyv::access::<ArchivedMessage, Error>(&bytes)?;
+        Ok(archived.into())
     }
 }
 

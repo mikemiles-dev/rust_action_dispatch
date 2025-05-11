@@ -1,12 +1,10 @@
 use core_logic::communications::Message;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info};
-use uuid::Uuid;
 
 use std::collections::HashMap;
-use std::error::Error;
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
@@ -75,7 +73,15 @@ impl AgentManager {
 
         for (agent, stream) in self.connected_agents.iter_mut() {
             debug!("Pinging agent {}!", agent.address);
-            let message: Vec<u8> = Message::Ping.into();
+
+            let message: Vec<u8> = match Message::Ping.try_into() {
+                Ok(msg) => msg,
+                Err(e) => {
+                    error!("Failed to serialize message: {}", e);
+                    continue;
+                }
+            };
+
             match stream.write_all(&message).await {
                 Ok(_) => {
                     debug!("Pinged agent {} successfully!", agent.address);
