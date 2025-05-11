@@ -5,7 +5,6 @@ use tokio::spawn;
 use tracing::{error, info};
 
 use std::error::Error;
-use std::net::SocketAddr;
 
 use crate::agent::DB_AGENTS;
 
@@ -54,15 +53,9 @@ impl CommandReceiver {
                                     Message::Ping => {
                                         info!("Received Ping from {}", peer_addr);
                                     }
-                                    Message::RegisterAgent(agent) => {
-                                        info!("Received RegisterAgent from {}", agent);
-                                        let agent_addr: SocketAddr = match agent.parse() {
-                                            Ok(addr) => addr,
-                                            Err(e) => {
-                                                error!("Failed to parse agent address: {}", e);
-                                                continue;
-                                            }
-                                        };
+                                    Message::RegisterAgent(agent_port) => {
+                                        let mut agent_addr = peer_addr;
+                                        agent_addr.set_port(agent_port);
                                         DB_AGENTS.write().await.push(agent_addr);
                                     }
                                 }

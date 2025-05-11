@@ -8,17 +8,19 @@ pub enum Direction {
     AgentToCommand,
 }
 
+type AgentPort = u16;
+
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub enum Message {
     Ping,
-    RegisterAgent(String),
+    RegisterAgent(AgentPort),
 }
 
 impl From<&ArchivedMessage> for Message {
     fn from(archived: &ArchivedMessage) -> Self {
         match archived {
             ArchivedMessage::Ping => Message::Ping,
-            ArchivedMessage::RegisterAgent(p) => Message::RegisterAgent(p.to_string()),
+            ArchivedMessage::RegisterAgent(p) => Message::RegisterAgent(p.into()),
         }
     }
 }

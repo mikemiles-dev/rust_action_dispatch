@@ -1,11 +1,11 @@
 mod agent;
-mod connection_manager;
+mod command_receiver;
 
 use tokio::spawn;
 use tracing::info;
 
 use agent::AgentManager;
-use connection_manager::CommandReceiver;
+use command_receiver::CommandReceiver;
 use std::error::Error;
 
 #[tokio::main]

@@ -8,7 +8,7 @@ use core_logic::communications::Message;
 use std::io;
 
 const SERVER_ADDRESS: &str = "127.0.0.1:8080";
-const AGENT_STRING: &str = "127.0.0.1:8081";
+const AGENT_PORT: u16 = 8081;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -103,7 +103,7 @@ impl ConnectionManager {
     }
 
     pub async fn register(&mut self) {
-        let message = Message::RegisterAgent(AGENT_STRING.to_string());
+        let message = Message::RegisterAgent(AGENT_PORT);
         self.central_command_writer.write(message).await;
     }
 
@@ -113,7 +113,7 @@ impl ConnectionManager {
     }
 
     pub async fn listen(&mut self) -> io::Result<()> {
-        let listener = std::net::TcpListener::bind(AGENT_STRING)?;
+        let listener = std::net::TcpListener::bind(format!("0.0.0.0:{AGENT_PORT}"))?;
         listener.set_nonblocking(true)?;
         let listener = TcpListener::from_std(listener)?;
 
