@@ -1,14 +1,26 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-
 use tracing::{error, info};
+
+use std::io;
+use std::{env, sync::OnceLock};
 
 use core_logic::communications::Message;
 
-use std::io;
-
 const SERVER_ADDRESS: &str = "127.0.0.1:8080";
-const AGENT_PORT: u16 = 8081;
+
+static AGENT_PORT: OnceLock<u16> = OnceLock::new();
+
+fn get_agent_port() -> u16 {
+    AGENT_PORT
+        .get_or_init(|| {
+            env::var("AGENT_PORT")
+                .unwrap_or("8081".to_string())
+                .parse()
+                .expect("Invalid AGENT_PORT")
+        })
+        .clone()
+}
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -58,6 +70,7 @@ impl CentralCommandWriter {
                     return Ok(stream);
                 }
                 Err(e) => {
+                    info!("Failed to connect to central command: {}", e);
                     attempts += 1;
                     if attempts >= MAX_ATTEMPTS {
                         error!(
@@ -78,7 +91,7 @@ impl CentralCommandWriter {
     }
 
     pub async fn write(&mut self, message: Message) {
-        let serialized: Vec<u8> = match message.try_into() {
+        let serialized: Vec<u8> = match message.clone().try_into() {
             Ok(msg) => msg,
             Err(e) => {
                 error!("Failed to serialize message: {}", e);
@@ -92,6 +105,7 @@ impl CentralCommandWriter {
                 error!("Failed to reconnect to central command: {}", e);
             }
         }
+        info!("Sent message to central command: {:?}", message);
     }
 }
 
@@ -103,7 +117,7 @@ impl ConnectionManager {
     }
 
     pub async fn register(&mut self) {
-        let message = Message::RegisterAgent(AGENT_PORT);
+        let message = Message::RegisterAgent(get_agent_port());
         self.central_command_writer.write(message).await;
     }
 
@@ -113,7 +127,7 @@ impl ConnectionManager {
     }
 
     pub async fn listen(&mut self) -> io::Result<()> {
-        let listener = std::net::TcpListener::bind(format!("0.0.0.0:{AGENT_PORT}"))?;
+        let listener = std::net::TcpListener::bind(format!("0.0.0.0:{}", get_agent_port()))?;
         listener.set_nonblocking(true)?;
         let listener = TcpListener::from_std(listener)?;
 
