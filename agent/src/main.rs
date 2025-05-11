@@ -1,5 +1,5 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::spawn;
 
 use tracing::{debug, error, info};
@@ -8,7 +8,8 @@ use core_logic::communications::{Communication, Direction, Message};
 
 use std::io;
 
-const AGNET_PORT: u16 = 8081;
+const SERVER_ADDRESS: &str = "127.0.0.1:8080";
+const AGENT_STRING: &str = "127.0.0.1:8081";
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -19,10 +20,14 @@ async fn main() -> io::Result<()> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global default subscriber");
 
-    ConnectionManager::try_new()
-        .expect("Failed to create connection manager")
-        .listen()
-        .await
+    let connection_manager =
+        ConnectionManager::try_new().expect("Failed to create connection manager");
+
+    connection_manager.register().await;
+
+    connection_manager.listen().await?;
+
+    Ok(())
 }
 
 pub struct ConnectionManager {
@@ -31,11 +36,27 @@ pub struct ConnectionManager {
 
 impl ConnectionManager {
     pub fn try_new() -> io::Result<Self> {
-        let listener = std::net::TcpListener::bind(format!("0.0.0.0:{AGNET_PORT}"))?;
+        let listener = std::net::TcpListener::bind(AGENT_STRING)?;
         listener.set_nonblocking(true)?;
         let listener = TcpListener::from_std(listener)?;
 
         Ok(Self { listener })
+    }
+
+    pub async fn register(&self) {
+        match TcpStream::connect(SERVER_ADDRESS).await {
+            Ok(mut stream) => {
+                info!("Connected to server at {}", SERVER_ADDRESS);
+                let message = Message::RegisterAgent(AGENT_STRING.to_string());
+                let serialized: Vec<u8> = message.into();
+                if let Err(e) = stream.write_all(&serialized).await {
+                    error!("Error writing to server: {}", e);
+                }
+            }
+            Err(e) => {
+                error!("Failed to connect to server: {}", e);
+            }
+        }
     }
 
     pub async fn listen(&self) -> io::Result<()> {

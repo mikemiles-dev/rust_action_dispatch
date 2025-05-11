@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::os::unix::net::SocketAddr;
 
 use rkyv::{
     Archive, Deserialize, Serialize, deserialize, rancor::Error, with::ArchiveWith, with::Inline,
@@ -11,15 +11,17 @@ pub enum Direction {
     AgentToCommand,
 }
 
-#[derive(Archive, Deserialize, Serialize, PartialEq, Debug, Clone)]
+#[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub enum Message {
     Ping,
+    RegisterAgent(String),
 }
 
 impl From<&ArchivedMessage> for Message {
     fn from(archived: &ArchivedMessage) -> Self {
         match archived {
             ArchivedMessage::Ping => Message::Ping,
+            ArchivedMessage::RegisterAgent(p) => Message::RegisterAgent(p.to_string()),
         }
     }
 }
