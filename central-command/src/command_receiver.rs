@@ -51,10 +51,8 @@ impl CommandReceiver {
                             Message::Ping => {
                                 info!("Received Ping from {}", peer_addr);
                             }
-                            Message::RegisterAgent(agent_port) => {
-                                let mut agent_addr = peer_addr;
-                                agent_addr.set_port(agent_port);
-                                DB_AGENTS.write().await.insert(agent_addr);
+                            Message::RegisterAgent(register_agent) => {
+                                DB_AGENTS.write().await.insert(register_agent);
                             }
                         }
                     }

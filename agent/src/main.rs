@@ -1,3 +1,4 @@
+use hostname;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{error, info};
@@ -5,11 +6,12 @@ use tracing::{error, info};
 use std::io;
 use std::{env, sync::OnceLock};
 
-use core_logic::communications::Message;
+use core_logic::communications::{Message, RegisterAgent};
 
 const SERVER_ADDRESS: &str = "127.0.0.1:8080";
 
 static AGENT_PORT: OnceLock<u16> = OnceLock::new();
+static AGENT_NAME: OnceLock<String> = OnceLock::new();
 
 fn get_agent_port() -> u16 {
     AGENT_PORT
@@ -20,6 +22,12 @@ fn get_agent_port() -> u16 {
                 .expect("Invalid AGENT_PORT")
         })
         .clone()
+}
+
+fn get_agent_name() -> String {
+    AGENT_NAME
+        .get_or_init(|| env::var("AGENT_NAME").unwrap_or_else(|_| "default_agent".to_string()))
+        .to_string()
 }
 
 #[tokio::main]
@@ -117,7 +125,15 @@ impl ConnectionManager {
     }
 
     pub async fn register(&mut self) {
-        let message = Message::RegisterAgent(get_agent_port());
+        let registered_agent = RegisterAgent {
+            name: get_agent_name(),
+            hostname: hostname::get()
+                .expect("Unable to get hostname!")
+                .to_string_lossy()
+                .to_string(),
+            port: get_agent_port(),
+        };
+        let message = Message::RegisterAgent(registered_agent);
         self.central_command_writer.write(message).await;
     }
 
@@ -127,7 +143,7 @@ impl ConnectionManager {
     }
 
     pub async fn listen(&mut self) -> io::Result<()> {
-        let listener = std::net::TcpListener::bind(format!("0.0.0.0:{}", get_agent_port()))?;
+        let listener = std::net::TcpListener::bind(format!("[::]:{}", get_agent_port()))?;
         listener.set_nonblocking(true)?;
         let listener = TcpListener::from_std(listener)?;
 

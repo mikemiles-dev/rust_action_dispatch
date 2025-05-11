@@ -8,19 +8,33 @@ pub enum Direction {
     AgentToCommand,
 }
 
-type AgentPort = u16;
+#[derive(Archive, Deserialize, Serialize, Hash, PartialEq, Eq, Debug, Clone)]
+pub struct RegisterAgent {
+    pub name: String,
+    pub hostname: String,
+    pub port: u16,
+}
 
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub enum Message {
     Ping,
-    RegisterAgent(AgentPort),
+    RegisterAgent(RegisterAgent),
 }
 
 impl From<&ArchivedMessage> for Message {
     fn from(archived: &ArchivedMessage) -> Self {
         match archived {
             ArchivedMessage::Ping => Message::Ping,
-            ArchivedMessage::RegisterAgent(p) => Message::RegisterAgent(p.into()),
+            ArchivedMessage::RegisterAgent(archived) => {
+                let name = archived.name.to_string();
+                let hostname = archived.hostname.to_string();
+                let port = archived.port.into();
+                Message::RegisterAgent(RegisterAgent {
+                    name,
+                    hostname,
+                    port,
+                })
+            }
         }
     }
 }

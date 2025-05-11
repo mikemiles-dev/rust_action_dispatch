@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 core-logic.workspace = true
+hostname.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

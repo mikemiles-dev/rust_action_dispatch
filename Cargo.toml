@@ -15,6 +15,7 @@ repository = "https://github.com/mikemiles-dev/rust_action_dispatch/"
 [workspace.dependencies]
 core-logic = { path = "core-logic" }
 chrono = { version = "0.4.23", features = ["serde"] }
+hostname = { version = "0.4.1" }
 log = { version = "0.4.27"  }
 tokio = { version = "1.45", features = ["full"] }
 tracing = { version = "0.1.41", features = ["log"] }

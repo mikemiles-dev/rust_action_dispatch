@@ -1,4 +1,4 @@
-use core_logic::communications::Message;
+use core_logic::communications::{Message, RegisterAgent};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::sync::RwLock;
@@ -6,16 +6,17 @@ use tracing::{debug, error, info};
 
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-use std::net::SocketAddr;
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::{Duration, Instant};
 
 use std::sync::LazyLock;
 
-pub static DB_AGENTS: LazyLock<RwLock<HashSet<SocketAddr>>> =
+pub static DB_AGENTS: LazyLock<RwLock<HashSet<RegisterAgent>>> =
     LazyLock::new(|| RwLock::new(HashSet::new()));
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Agent {
+    name: String,
     address: SocketAddr,
 }
 
@@ -28,11 +29,29 @@ pub struct AgentManager {
 impl AgentManager {
     async fn populate_agents(&mut self) {
         let agents = DB_AGENTS.read().await;
-        let agents = agents
-            .iter()
-            .map(|addr| Agent { address: *addr })
-            .collect::<HashSet<_>>();
-        self.agents = agents;
+        let mut new_agents = HashSet::new();
+        for register_agent in agents.iter() {
+            let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
+            let mut socket_addr = match addr.to_socket_addrs() {
+                Ok(s) => s,
+                Err(_) => {
+                    error!("Inalid agent! {:?}", register_agent);
+                    continue;
+                }
+            };
+            let socket_addr = match socket_addr.next() {
+                Some(addr) => addr,
+                None => {
+                    error!("Invalid agent! {:?}", register_agent);
+                    continue;
+                }
+            };
+            new_agents.insert(Agent {
+                name: register_agent.name.clone(),
+                address: socket_addr,
+            });
+        }
+        self.agents = new_agents;
     }
 
     async fn check_unconnected(&mut self) {
