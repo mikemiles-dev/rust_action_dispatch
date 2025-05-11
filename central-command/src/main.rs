@@ -1,10 +1,10 @@
-mod agent;
+mod agent_manager;
 mod command_receiver;
 
 use tokio::spawn;
 use tracing::info;
 
-use agent::AgentManager;
+use agent_manager::AgentManager;
 use command_receiver::CommandReceiver;
 use std::error::Error;
 

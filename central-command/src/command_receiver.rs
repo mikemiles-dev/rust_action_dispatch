@@ -6,7 +6,7 @@ use tracing::{error, info};
 
 use std::error::Error;
 
-use crate::agent::DB_AGENTS;
+use crate::agent_manager::DB_AGENTS;
 
 const SERVER_ADDRESS: &str = "0.0.0.0:8080";
 
