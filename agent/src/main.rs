@@ -1,6 +1,5 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::spawn;
 
 use tracing::{error, info};
 
@@ -32,20 +31,14 @@ async fn main() -> io::Result<()> {
 }
 
 pub struct ConnectionManager {
-    listener: TcpListener,
     central_command_stream: TcpStream,
 }
 
 impl ConnectionManager {
     pub async fn try_new() -> io::Result<Self> {
-        let listener = std::net::TcpListener::bind(AGENT_STRING)?;
-        listener.set_nonblocking(true)?;
-        let listener = TcpListener::from_std(listener)?;
-
         let central_command_stream = Self::connect_to_central_command().await?;
 
         Ok(Self {
-            listener,
             central_command_stream,
         })
     }
@@ -109,53 +102,61 @@ impl ConnectionManager {
         }
     }
 
-    pub async fn listen(&self) -> io::Result<()> {
-        info!("Listening on: {}", self.listener.local_addr()?);
+    pub async fn ping_central_command(&mut self) {
+        let message = Message::Ping;
+        self.write_to_central_command(message).await;
+    }
+
+    pub async fn listen(&mut self) -> io::Result<()> {
+        let listener = std::net::TcpListener::bind(AGENT_STRING)?;
+        listener.set_nonblocking(true)?;
+        let listener = TcpListener::from_std(listener)?;
 
         loop {
-            let (mut stream, peer_addr) = self.listener.accept().await?;
+            info!("Listening on: {}", listener.local_addr()?);
+            let (mut stream, peer_addr) = listener.accept().await?;
             info!("New connection from: {}", peer_addr);
 
             // Spawn a new task to handle the connection
-            spawn(async move {
-                let mut buffer = [0; 1024];
+            let mut buffer = [0; 1024];
 
-                loop {
-                    tokio::select! {
-                        result = stream.read(&mut buffer) => {
-                            match result {
-                                Ok(0) => {
-                                    info!("Connection with {} closed by peer.", peer_addr);
-                                    break; // Connection closed by the client
-                                }
-                                Ok(n) => {
-                                    let received = buffer[..n].to_vec();
-                                    let message: Message = match received.try_into() {
-                                        Ok(msg) => msg,
-                                        Err(e) => {
-                                            error!("Failed to parse message: {}", e);
-                                            continue;
-                                        }
-                                    };
-                                    info!("Received: {:?} from {}", message, peer_addr.ip());
-
-                                    // Echo the data back to the client (example of keeping the connection active)
-                                    if let Err(e) = stream.write_all(&vec![]).await {
-                                        error!("Error writing to {}: {}", peer_addr, e);
-                                        break;
+            loop {
+                tokio::select! {
+                    result = stream.read(&mut buffer) => {
+                        match result {
+                            Ok(0) => {
+                                info!("Connection with {} closed by peer.", peer_addr);
+                                break; // Connection closed by the client
+                            }
+                            Ok(n) => {
+                                let received = buffer[..n].to_vec();
+                                let message: Message = match received.try_into() {
+                                    Ok(msg) => msg,
+                                    Err(e) => {
+                                        error!("Failed to parse message: {}", e);
+                                        continue;
                                     }
-                                }
-                                Err(e) => {
-                                    error!("Error reading from {}: {}", peer_addr, e);
+                                };
+                                info!("Received: {:?} from {}", message, peer_addr.ip());
+
+                                // Echo the data back to the client (example of keeping the connection active)
+                                if let Err(e) = stream.write_all(&vec![]).await {
+                                    error!("Error writing to {}: {}", peer_addr, e);
                                     break;
                                 }
+
+                                self.ping_central_command().await;
+                            }
+                            Err(e) => {
+                                error!("Error reading from {}: {}", peer_addr, e);
+                                break;
                             }
                         }
-                        // You could add other asynchronous tasks here that might interact with this connection
-                        // For example, a timer or a channel receiver.
                     }
+                    // You could add other asynchronous tasks here that might interact with this connection
+                    // For example, a timer or a channel receiver.
                 }
-            });
+            }
         }
     }
 }
