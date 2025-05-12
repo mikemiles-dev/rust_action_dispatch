@@ -1,4 +1,4 @@
-use std::os::unix::net::SocketAddr;
+use std::net::SocketAddr;
 
 use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
 use uuid::Uuid;
