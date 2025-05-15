@@ -13,10 +13,13 @@ readme = "README.md"
 repository = "https://github.com/mikemiles-dev/rust_action_dispatch/"
 
 [workspace.dependencies]
+bson = { version = "2", features = ["chrono-0_4"] } # Needed for using chrono datetime in doc
 core-logic = { path = "core-logic" }
 chrono = { version = "0.4.23", features = ["serde"] }
 hostname = { version = "0.4.1" }
 log = { version = "0.4.27"  }
+mongodb = { version = "2.1" }
+serde = { version = "1.0.130", features = ["derive"] }
 tokio = { version = "1.45", features = ["full"] }
 tracing = { version = "0.1.41", features = ["log"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

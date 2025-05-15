@@ -1,7 +1,5 @@
-use core_logic::communications::{Message, RegisterAgent};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
-use tokio::sync::RwLock;
 use tracing::{debug, error, info};
 
 use std::collections::{HashMap, HashSet};
@@ -9,10 +7,8 @@ use std::hash::Hash;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::{Duration, Instant};
 
-use std::sync::LazyLock;
-
-pub static DB_AGENTS: LazyLock<RwLock<HashSet<RegisterAgent>>> =
-    LazyLock::new(|| RwLock::new(HashSet::new()));
+use core_logic::communications::{Message, RegisterAgent};
+use core_logic::datastore::Datastore;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Agent {
@@ -20,39 +16,50 @@ pub struct Agent {
     address: SocketAddr,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct AgentManager {
+    datastore: Datastore,
     agents: HashSet<Agent>,
     connected_agents: HashMap<Agent, TcpStream>,
 }
 
 impl AgentManager {
-    async fn populate_agents(&mut self) {
-        let agents = DB_AGENTS.read().await;
-        let mut new_agents = HashSet::new();
-        for register_agent in agents.iter() {
-            let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
-            let mut socket_addr = match addr.to_socket_addrs() {
-                Ok(s) => s,
-                Err(_) => {
-                    error!("Inalid agent! {:?}", register_agent);
-                    continue;
-                }
-            };
-            let socket_addr = match socket_addr.next() {
-                Some(addr) => addr,
-                None => {
-                    error!("Invalid agent! {:?}", register_agent);
-                    continue;
-                }
-            };
-            new_agents.insert(Agent {
-                name: register_agent.name.clone(),
-                address: socket_addr,
-            });
+    pub async fn new() -> Self {
+        Self {
+            datastore: Datastore::try_new()
+                .await
+                .expect("Failed to create datastore"),
+            agents: HashSet::new(),
+            connected_agents: HashMap::new(),
         }
-        self.agents = new_agents;
     }
+
+    // async fn populate_agents(&mut self) {
+    //     let agents = DB_AGENTS.read().await;
+    //     let mut new_agents = HashSet::new();
+    //     for register_agent in agents.iter() {
+    //         let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
+    //         let mut socket_addr = match addr.to_socket_addrs() {
+    //             Ok(s) => s,
+    //             Err(_) => {
+    //                 error!("Inalid agent! {:?}", register_agent);
+    //                 continue;
+    //             }
+    //         };
+    //         let socket_addr = match socket_addr.next() {
+    //             Some(addr) => addr,
+    //             None => {
+    //                 error!("Invalid agent! {:?}", register_agent);
+    //                 continue;
+    //             }
+    //         };
+    //         new_agents.insert(Agent {
+    //             name: register_agent.name.clone(),
+    //             address: socket_addr,
+    //         });
+    //     }
+    //     self.agents = new_agents;
+    // }
 
     async fn check_unconnected(&mut self) {
         debug!("Checking for unconnected agents...");
@@ -138,7 +145,7 @@ impl AgentManager {
 
         loop {
             if last_agent_db_check.elapsed().as_secs() > AGENT_DB_CHECK_INTERVAL_SECONDS {
-                self.populate_agents().await;
+                //self.populate_agents().await;
                 info!(
                     "Connected agents are: {{{}}}",
                     self.agents

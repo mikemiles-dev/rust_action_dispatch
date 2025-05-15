@@ -1,31 +1,37 @@
-use core_logic::communications::Message;
+use core_logic::{communications::Message, datastore};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
 use tokio::spawn;
+use tokio::sync::mpsc::Sender;
 use tracing::{error, info};
 
 use std::error::Error;
 
-use crate::agent_manager::DB_AGENTS;
+use core_logic::datastore::{DataStoreTypes, agent::AgentV1};
 
 const SERVER_ADDRESS: &str = "0.0.0.0:8080";
 
 pub struct CommandReceiver {
+    datastore_sender: Sender<DataStoreTypes>,
     listener: TcpListener,
 }
 
 impl CommandReceiver {
-    pub async fn try_new() -> Result<Self, Box<dyn Error>> {
+    pub async fn try_new(datastore_sender: Sender<DataStoreTypes>) -> Result<Self, Box<dyn Error>> {
         let listener = TcpListener::bind(SERVER_ADDRESS)
             .await
             .expect("Failed to bind to address");
 
-        Ok(CommandReceiver { listener })
+        Ok(CommandReceiver {
+            datastore_sender,
+            listener,
+        })
     }
 
     #[allow(unreachable_code)]
     pub async fn listen(&mut self) -> Result<(), Box<dyn Error>> {
         loop {
+            let datastore_sender = self.datastore_sender.clone();
             let (mut stream, peer_addr) = self.listener.accept().await?;
             info!("Accepted connection from: {}", peer_addr);
 
@@ -52,7 +58,16 @@ impl CommandReceiver {
                                 info!("Received Ping from {}", peer_addr);
                             }
                             Message::RegisterAgent(register_agent) => {
-                                DB_AGENTS.write().await.insert(register_agent);
+                                info!(
+                                    "Received RegisterAgent from {}: {:?}",
+                                    peer_addr, register_agent
+                                );
+                                let agent: AgentV1 = register_agent.into();
+                                datastore_sender
+                                    .clone()
+                                    .send(DataStoreTypes::Agent(agent))
+                                    .await
+                                    .unwrap();
                             }
                         }
                     }

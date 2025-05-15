@@ -4,9 +4,11 @@ mod command_receiver;
 use tokio::spawn;
 use tracing::info;
 
+use std::error::Error;
+
 use agent_manager::AgentManager;
 use command_receiver::CommandReceiver;
-use std::error::Error;
+use core_logic::datastore::Datastore;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -18,19 +20,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global default subscriber");
 
+    // Initialize the datastore
+    let datastore = Datastore::try_new()
+        .await
+        .expect("Failed to create datastore");
+
+    // Clone the sender for use in the command receiver
+    let datastore_sender = datastore.sender.clone();
+
     spawn(async move {
-        let mut receiver = CommandReceiver::try_new()
+        let mut command_receiver = CommandReceiver::try_new(datastore_sender.clone())
             .await
             .expect("Failed to create connection manager");
-        receiver
+        command_receiver
             .listen()
             .await
             .expect("Failed to listen for connections");
     });
 
+    // Clone the sender for use in the agent manager
+    let datastore_sender = datastore.sender.clone();
+
     // Spawn a task to connect to the server and send data
     spawn(async move {
-        AgentManager::default().start().await;
+        let database_sender = datastore_sender.clone();
+        let mut agent_manager = AgentManager::new().await;
+        agent_manager.start().await;
     });
 
     info!("Central Command started and listening for connections...");
