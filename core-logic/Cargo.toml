@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 bson.workspace = true
 chrono.workspace = true
+futures.workspace = true
 mongodb.workspace = true
 tracing.workspace = true
 serde.workspace = true
