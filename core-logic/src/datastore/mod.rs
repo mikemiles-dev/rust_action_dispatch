@@ -34,11 +34,11 @@ pub struct Datastore {
 impl Datastore {
     pub async fn create_indicies(
         collection: &Collection<Document>,
-        field_name: &str,
+        doc: Document,
     ) -> Result<(), Box<dyn Error>> {
         let index_options = IndexOptions::builder().unique(true).build();
         let index_model = IndexModel::builder()
-            .keys(doc! { field_name: 1 }) // 1 for ascending, -1 for descending
+            .keys(doc) // 1 for ascending, -1 for descending
             .options(index_options)
             .build();
 
