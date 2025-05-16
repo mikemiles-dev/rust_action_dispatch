@@ -224,6 +224,7 @@ version = "0.1.0"
 dependencies = [
  "bson",
  "core-logic",
+ "futures",
  "log",
  "mongodb",
  "tokio",

@@ -1,3 +1,5 @@
+use bson::Document;
+use futures::stream::TryStreamExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tracing::{debug, error, info};
@@ -9,12 +11,29 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use core_logic::communications::{Message, RegisterAgent};
-use core_logic::datastore::Datastore;
+use core_logic::datastore::{Datastore, agent::AgentV1};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Agent {
     name: String,
     address: SocketAddr,
+}
+
+impl TryFrom<AgentV1> for Agent {
+    type Error = std::io::Error;
+
+    fn try_from(agent: AgentV1) -> Result<Self, Self::Error> {
+        let addr = format!("{}:{}", agent.hostname, agent.port);
+        let mut socket_addr = addr.to_socket_addrs()?;
+        let socket_addr = socket_addr.next().ok_or(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Invalid address",
+        ))?;
+        Ok(Agent {
+            name: agent.name,
+            address: socket_addr,
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -34,30 +53,48 @@ impl AgentManager {
     }
 
     async fn fetch_agents(&mut self) {
-        // let agents = DB_AGENTS.read().await;
-        // let mut new_agents = HashSet::new();
-        // for register_agent in agents.iter() {
-        //     let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
-        //     let mut socket_addr = match addr.to_socket_addrs() {
-        //         Ok(s) => s,
-        //         Err(_) => {
-        //             error!("Inalid agent! {:?}", register_agent);
-        //             continue;
-        //         }
-        //     };
-        //     let socket_addr = match socket_addr.next() {
-        //         Some(addr) => addr,
-        //         None => {
-        //             error!("Invalid agent! {:?}", register_agent);
-        //             continue;
-        //         }
-        //     };
-        //     new_agents.insert(Agent {
-        //         name: register_agent.name.clone(),
-        //         address: socket_addr,
-        //     });
-        // }
-        // self.agents = new_agents;
+        // let filter = doc! { "age": { "$gt": 25 } };
+        let filter = Document::new();
+        let collection = self
+            .datastore
+            .client
+            .database("rust-action-dispatch")
+            .collection::<AgentV1>("agents");
+        let mut cursor = match collection.find(filter, None).await {
+            Ok(cursor) => cursor,
+            Err(e) => {
+                error!("Failed to fetch agents: {}", e);
+                return;
+            }
+        };
+        let mut agents = vec![];
+        while let Some(agent) = cursor.try_next().await.unwrap() {
+            agents.push(agent);
+        }
+
+        let mut new_agents = HashSet::new();
+        for register_agent in agents.iter() {
+            let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
+            let mut socket_addr = match addr.to_socket_addrs() {
+                Ok(s) => s,
+                Err(_) => {
+                    error!("Inalid agent! {:?}", register_agent);
+                    continue;
+                }
+            };
+            let socket_addr = match socket_addr.next() {
+                Some(addr) => addr,
+                None => {
+                    error!("Invalid agent! {:?}", register_agent);
+                    continue;
+                }
+            };
+            new_agents.insert(Agent {
+                name: register_agent.name.clone(),
+                address: socket_addr,
+            });
+        }
+        self.agents = new_agents;
     }
 
     async fn check_unconnected(&mut self) {
@@ -144,7 +181,7 @@ impl AgentManager {
 
         loop {
             if last_agent_db_check.elapsed().as_secs() > AGENT_DB_CHECK_INTERVAL_SECONDS {
-                //self.populate_agents().await;
+                self.fetch_agents().await;
                 info!(
                     "Connected agents are: {{{}}}",
                     self.agents

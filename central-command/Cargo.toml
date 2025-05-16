@@ -9,6 +9,7 @@ publish = false
 [dependencies]
 bson.workspace = true
 core-logic.workspace = true
+futures.workspace = true
 log.workspace = true
 mongodb.workspace = true
 tokio.workspace = true

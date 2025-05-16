@@ -11,7 +11,7 @@ use crate::datastore::Datastore;
 pub struct AgentV1 {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
-    name: String,
+    pub name: String,
     pub hostname: String,
     pub port: u16,
     pub version: u32,
