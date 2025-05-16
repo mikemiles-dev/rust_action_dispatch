@@ -1,12 +1,15 @@
 pub mod agent;
 
 use mongodb::{
-    Client,
+    Client, Collection, IndexModel,
     bson::{Document, doc},
-    error::Error,
-    options::{ClientOptions, ResolverConfig},
+    error::Error as MongoError,
+    options::{ClientOptions, IndexOptions, ResolverConfig},
 };
+
 use std::env;
+use std::error::Error;
+
 use tokio::{
     spawn,
     sync::mpsc::{self, Receiver, Sender},
@@ -29,7 +32,24 @@ pub struct Datastore {
 }
 
 impl Datastore {
-    pub async fn try_new() -> Result<Self, Error> {
+    pub async fn create_indicies(
+        collection: &Collection<Document>,
+        field_name: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let index_options = IndexOptions::builder().unique(true).build();
+        let index_model = IndexModel::builder()
+            .keys(doc! { field_name: 1 }) // 1 for ascending, -1 for descending
+            .options(index_options)
+            .build();
+
+        collection.create_index(index_model, None).await?;
+
+        Ok(())
+    }
+}
+
+impl Datastore {
+    pub async fn try_new() -> Result<Self, MongoError> {
         // Load the MongoDB connection string from an environment variable:
         let client_uri = match env::var("MONGODB_URI") {
             Ok(uri) => {
@@ -50,6 +70,11 @@ impl Datastore {
         let client = Client::with_options(options)?;
         let db = client.database("rust-action-dispatch");
 
+        let agents = db.collection::<bson::Document>("agents");
+        AgentV1::create_indicies(&agents)
+            .await
+            .expect("Failed to create mongodb indices");
+
         // Create a channel to send messages to the datastore:
         let (tx, mut rx) = mpsc::channel::<DataStoreTypes>(100);
 
@@ -58,7 +83,7 @@ impl Datastore {
                 match message {
                     DataStoreTypes::Agent(agent) => {
                         // Handle the agent message
-                        info!("ZZZ Received agent: {:?}", agent);
+                        info!("Received agent to register: {:?}", agent);
                         let agents = db.collection::<bson::Document>("agents");
                         let bson_agent = bson::to_document(&agent).unwrap();
                         let result = agents.insert_one(bson_agent, None).await;
