@@ -44,9 +44,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Clone the sender for use in the agent manager
     let cloned_datastore = datastore.clone();
 
+    let cloned_datastore = datastore.clone();
+
     // Spawn a task to connect to the server and send data
     spawn(async move {
-        let mut agent_manager = AgentManager::new().await;
+        let mut agent_manager = AgentManager::new(cloned_datastore).await;
         agent_manager.start().await;
     });
 

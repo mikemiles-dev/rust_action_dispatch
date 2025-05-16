@@ -30,6 +30,16 @@ impl AgentV1 {
     }
 }
 
+impl std::fmt::Display for AgentV1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "AgentV1 {{ id: {:?}, name: {}, hostname: {}, port: {}, version: {} }}",
+            self.id, self.name, self.hostname, self.port, self.version
+        )
+    }
+}
+
 impl From<RegisterAgent> for AgentV1 {
     fn from(register_agent: RegisterAgent) -> Self {
         Self {

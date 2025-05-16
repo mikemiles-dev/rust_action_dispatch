@@ -1,5 +1,8 @@
 use bson::Document;
-use core_logic::{communications::Message, datastore::{self, agent}};
+use core_logic::{
+    communications::{Message, RegisterAgent},
+    datastore::{self, agent},
+};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
 use tokio::spawn;
@@ -27,6 +30,22 @@ impl CommandReceiver {
             datastore_client,
             listener,
         })
+    }
+
+    async fn register_agent(datastore_client: Arc<Datastore>, register_agent: RegisterAgent) {
+        let db = datastore_client.client.database("rust-action-dispatch");
+        let agents_collection = db.collection::<Document>("agents");
+        let agent: AgentV1 = register_agent.into();
+        let bson_agent = bson::to_document(&agent).unwrap();
+        let result = agents_collection.insert_one(bson_agent, None).await;
+        match result {
+            Ok(_) => {
+                info!("Inserted agent: {:?}", agent);
+            }
+            Err(e) => {
+                warn!("Failed to insert agent: {}, {}", agent, e);
+            }
+        }
     }
 
     #[allow(unreachable_code)]
@@ -59,19 +78,8 @@ impl CommandReceiver {
                                 info!("Received Ping from {}", peer_addr);
                             }
                             Message::RegisterAgent(register_agent) => {
-                                let db = datastore_client.client.database("rust-action-dispatch");
-                                let agents_collection = db.collection::<Document>("agents");
-                                let agent: AgentV1 = register_agent.into();
-                                let bson_agent = bson::to_document(&agent).unwrap();
-                                let result = agents_collection.insert_one(bson_agent, None).await;
-                                match result {
-                                    Ok(_) => {
-                                        info!("Inserted agent: {:?}", agent);
-                                    }
-                                    Err(e) => {
-                                        warn!("Failed to insert agent: {:?}", e);
-                                    }
-                                }
+                                Self::register_agent(datastore_client.clone(), register_agent)
+                                    .await;
                             }
                         }
                     }

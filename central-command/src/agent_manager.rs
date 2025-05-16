@@ -5,6 +5,7 @@ use tracing::{debug, error, info};
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::net::{SocketAddr, ToSocketAddrs};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use core_logic::communications::{Message, RegisterAgent};
@@ -18,48 +19,46 @@ pub struct Agent {
 
 #[derive(Debug)]
 pub struct AgentManager {
-    datastore: Datastore,
+    datastore: Arc<Datastore>,
     agents: HashSet<Agent>,
     connected_agents: HashMap<Agent, TcpStream>,
 }
 
 impl AgentManager {
-    pub async fn new() -> Self {
+    pub async fn new(datastore: Arc<Datastore>) -> Self {
         Self {
-            datastore: Datastore::try_new()
-                .await
-                .expect("Failed to create datastore"),
+            datastore,
             agents: HashSet::new(),
             connected_agents: HashMap::new(),
         }
     }
 
-    // async fn populate_agents(&mut self) {
-    //     let agents = DB_AGENTS.read().await;
-    //     let mut new_agents = HashSet::new();
-    //     for register_agent in agents.iter() {
-    //         let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
-    //         let mut socket_addr = match addr.to_socket_addrs() {
-    //             Ok(s) => s,
-    //             Err(_) => {
-    //                 error!("Inalid agent! {:?}", register_agent);
-    //                 continue;
-    //             }
-    //         };
-    //         let socket_addr = match socket_addr.next() {
-    //             Some(addr) => addr,
-    //             None => {
-    //                 error!("Invalid agent! {:?}", register_agent);
-    //                 continue;
-    //             }
-    //         };
-    //         new_agents.insert(Agent {
-    //             name: register_agent.name.clone(),
-    //             address: socket_addr,
-    //         });
-    //     }
-    //     self.agents = new_agents;
-    // }
+    async fn fetch_agents(&mut self) {
+        // let agents = DB_AGENTS.read().await;
+        // let mut new_agents = HashSet::new();
+        // for register_agent in agents.iter() {
+        //     let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
+        //     let mut socket_addr = match addr.to_socket_addrs() {
+        //         Ok(s) => s,
+        //         Err(_) => {
+        //             error!("Inalid agent! {:?}", register_agent);
+        //             continue;
+        //         }
+        //     };
+        //     let socket_addr = match socket_addr.next() {
+        //         Some(addr) => addr,
+        //         None => {
+        //             error!("Invalid agent! {:?}", register_agent);
+        //             continue;
+        //         }
+        //     };
+        //     new_agents.insert(Agent {
+        //         name: register_agent.name.clone(),
+        //         address: socket_addr,
+        //     });
+        // }
+        // self.agents = new_agents;
+    }
 
     async fn check_unconnected(&mut self) {
         debug!("Checking for unconnected agents...");
