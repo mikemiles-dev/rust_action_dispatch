@@ -14,12 +14,12 @@ use core_logic::communications::{Message, RegisterAgent};
 use core_logic::datastore::{Datastore, agent::AgentV1};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub struct Agent {
+pub struct ConnectedAgent {
     name: String,
     address: SocketAddr,
 }
 
-impl TryFrom<AgentV1> for Agent {
+impl TryFrom<AgentV1> for ConnectedAgent {
     type Error = std::io::Error;
 
     fn try_from(agent: AgentV1) -> Result<Self, Self::Error> {
@@ -29,7 +29,7 @@ impl TryFrom<AgentV1> for Agent {
             std::io::ErrorKind::InvalidInput,
             "Invalid address",
         ))?;
-        Ok(Agent {
+        Ok(ConnectedAgent {
             name: agent.name,
             address: socket_addr,
         })
@@ -39,8 +39,8 @@ impl TryFrom<AgentV1> for Agent {
 #[derive(Debug)]
 pub struct AgentManager {
     datastore: Arc<Datastore>,
-    agents: HashSet<Agent>,
-    connected_agents: HashMap<Agent, TcpStream>,
+    agents: HashSet<ConnectedAgent>,
+    connected_agents: HashMap<ConnectedAgent, TcpStream>,
 }
 
 impl AgentManager {
@@ -89,7 +89,7 @@ impl AgentManager {
                     continue;
                 }
             };
-            new_agents.insert(Agent {
+            new_agents.insert(ConnectedAgent {
                 name: register_agent.name.clone(),
                 address: socket_addr,
             });
@@ -112,7 +112,7 @@ impl AgentManager {
         }
     }
 
-    fn get_unconnected(&mut self) -> Vec<Agent> {
+    fn get_unconnected(&mut self) -> Vec<ConnectedAgent> {
         self.agents
             .iter()
             .filter(|agent| !self.connected_agents.contains_key(agent))
@@ -120,7 +120,7 @@ impl AgentManager {
             .collect()
     }
 
-    async fn connect_unconnected(&mut self, unconnected_agents: Vec<Agent>) {
+    async fn connect_unconnected(&mut self, unconnected_agents: Vec<ConnectedAgent>) {
         for agent in unconnected_agents.into_iter() {
             match TcpStream::connect(agent.address).await {
                 Ok(stream) => {
