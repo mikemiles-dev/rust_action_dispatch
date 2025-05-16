@@ -111,6 +111,6 @@ impl Datastore {
         //     }
         // });
 
-        Ok(Datastore { client, })
+        Ok(Datastore { client })
     }
 }

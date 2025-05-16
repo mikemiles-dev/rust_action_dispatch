@@ -7,6 +7,7 @@ publish = false
 
 
 [dependencies]
+bson.workspace = true
 core-logic.workspace = true
 log.workspace = true
 mongodb.workspace = true

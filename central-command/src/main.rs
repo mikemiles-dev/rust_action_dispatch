@@ -2,9 +2,9 @@ mod agent_manager;
 mod command_receiver;
 
 use mongodb::Client;
+use std::sync::Arc;
 use tokio::spawn;
 use tracing::info;
-use std::sync::Arc;
 
 use std::error::Error;
 
@@ -23,9 +23,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .expect("Failed to set global default subscriber");
 
     // Initialize the datastore
-    let datastore = Arc::new(Datastore::try_new()
-        .await
-        .expect("Failed to create datastore"));
+    let datastore = Arc::new(
+        Datastore::try_new()
+            .await
+            .expect("Failed to create datastore"),
+    );
 
     let cloned_datastore = datastore.clone();
 

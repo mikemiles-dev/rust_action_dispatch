@@ -1,14 +1,14 @@
-use core_logic::{communications::Message, datastore};
-use mongodb::Client;
+use bson::Document;
+use core_logic::{communications::Message, datastore::{self, agent}};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
 use tokio::spawn;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
-use std::sync::Arc;
 use std::error::Error;
+use std::sync::Arc;
 
-use core_logic::datastore::{Datastore,DataStoreTypes, agent::AgentV1};
+use core_logic::datastore::{DataStoreTypes, Datastore, agent::AgentV1};
 
 const SERVER_ADDRESS: &str = "0.0.0.0:8080";
 
@@ -32,6 +32,7 @@ impl CommandReceiver {
     #[allow(unreachable_code)]
     pub async fn listen(&mut self) -> Result<(), Box<dyn Error>> {
         loop {
+            let datastore_client = self.datastore_client.clone();
             let (mut stream, peer_addr) = self.listener.accept().await?;
             info!("Accepted connection from: {}", peer_addr);
 
@@ -58,16 +59,19 @@ impl CommandReceiver {
                                 info!("Received Ping from {}", peer_addr);
                             }
                             Message::RegisterAgent(register_agent) => {
-                                // info!(
-                                //     "Received RegisterAgent from {}: {:?}",
-                                //     peer_addr, register_agent
-                                // );
-                                // let agent: AgentV1 = register_agent.into();
-                                // datastore_sender
-                                //     .clone()
-                                //     .send(DataStoreTypes::Agent(agent))
-                                //     .await
-                                //     .unwrap();
+                                let db = datastore_client.client.database("rust-action-dispatch");
+                                let agents_collection = db.collection::<Document>("agents");
+                                let agent: AgentV1 = register_agent.into();
+                                let bson_agent = bson::to_document(&agent).unwrap();
+                                let result = agents_collection.insert_one(bson_agent, None).await;
+                                match result {
+                                    Ok(_) => {
+                                        info!("Inserted agent: {:?}", agent);
+                                    }
+                                    Err(e) => {
+                                        warn!("Failed to insert agent: {:?}", e);
+                                    }
+                                }
                             }
                         }
                     }

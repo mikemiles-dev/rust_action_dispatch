@@ -222,6 +222,7 @@ dependencies = [
 name = "central-command"
 version = "0.1.0"
 dependencies = [
+ "bson",
  "core-logic",
  "log",
  "mongodb",
