@@ -9,6 +9,7 @@ publish = false
 [dependencies]
 core-logic.workspace = true
 log.workspace = true
+mongodb.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
