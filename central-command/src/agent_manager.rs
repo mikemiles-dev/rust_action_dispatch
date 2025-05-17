@@ -4,6 +4,7 @@ use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::spawn;
 use tokio::sync::Mutex;
+use tokio::time::sleep;
 use tracing::{debug, error, info};
 
 use std::collections::{HashMap, HashSet};
@@ -226,7 +227,8 @@ impl AgentManager {
                         .collect::<Vec<_>>()
                         .join(", ")
                 );
-                tokio::time::sleep(Duration::from_secs(AGENT_DB_CHECK_INTERVAL_SECONDS)).await;
+                drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
+                sleep(Duration::from_secs(AGENT_DB_CHECK_INTERVAL_SECONDS)).await;
             }
         });
 
@@ -236,7 +238,8 @@ impl AgentManager {
             loop {
                 let mut manager_lock = manager_clone.lock().await;
                 manager_lock.check_connected().await;
-                tokio::time::sleep(Duration::from_secs(CONNECT_CHECK_INTERVAL_SECONDS)).await;
+                drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
+                sleep(Duration::from_secs(CONNECT_CHECK_INTERVAL_SECONDS)).await;
             }
         });
 
@@ -246,7 +249,8 @@ impl AgentManager {
             loop {
                 let mut manager_lock = manager_clone.lock().await;
                 manager_lock.check_unconnected().await;
-                tokio::time::sleep(Duration::from_secs(UNCONNECT_CHECK_INTERVAL_SECONDS)).await;
+                drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
+                sleep(Duration::from_secs(UNCONNECT_CHECK_INTERVAL_SECONDS)).await;
             }
         });
 
@@ -271,7 +275,8 @@ impl AgentManager {
                         // Dispatch the job to the appropriate agent
                     }
                 }
-                tokio::time::sleep(Duration::from_secs(1)).await;
+                drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
+                sleep(Duration::from_secs(1)).await;
             }
         });
     }
