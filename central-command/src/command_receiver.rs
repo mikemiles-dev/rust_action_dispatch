@@ -78,11 +78,14 @@ impl CommandReceiver {
 
                         match message {
                             Message::Ping => {
-                                info!("Received Ping from {}", peer_addr);
+                                info!("Ping received from {}", peer_addr);
                             }
                             Message::RegisterAgent(register_agent) => {
                                 Self::register_agent(datastore_client.clone(), register_agent)
                                     .await;
+                            }
+                            Message::JobComplete => {
+                                info!("Job complete received");
                             }
                             _ => (),
                         }

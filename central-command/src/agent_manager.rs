@@ -230,7 +230,7 @@ impl AgentManager {
 
     /// Check if connected agents are still reachable
     pub async fn start(self) {
-        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 30;
+        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
         const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
         const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 1;
 
@@ -305,10 +305,17 @@ impl AgentManager {
                 }
                 for job in jobs_to_dispatch.iter() {
                     debug!("Dispatching job: {:?}", job);
-                    manager_lock
+                    match manager_lock
                         .dispatch_job_to_agent(job.clone(), "foo2".to_string())
                         .await
-                        .unwrap();
+                    {
+                        Ok(_) => {
+                            debug!("Job dispatched successfully!");
+                        }
+                        Err(e) => {
+                            error!("Error dispatching job: {}", e);
+                        }
+                    }
                     // Dispatch the job to the appropriate agent
                 }
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping

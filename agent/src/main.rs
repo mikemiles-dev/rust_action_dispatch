@@ -1,6 +1,6 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 use std::io;
 use std::{env, sync::OnceLock};
@@ -109,7 +109,7 @@ impl CentralCommandWriter {
                 error!("Failed to reconnect to central command: {}", e);
             }
         }
-        info!("Sent message to central command: {:?}", message);
+        debug!("Sent message to central command: {:?}", message);
     }
 }
 
@@ -136,6 +136,31 @@ impl ConnectionManager {
     pub async fn ping_central_command(&mut self) {
         let message = Message::Ping;
         self.central_command_writer.write(message).await;
+    }
+
+    async fn report_job_complete(&mut self) {
+        let message = Message::JobComplete;
+        self.central_command_writer.write(message).await;
+    }
+
+    async fn handle_message(
+        &mut self,
+        message: Message,
+        peer_addr: std::net::SocketAddr,
+    ) -> io::Result<()> {
+        match message {
+            Message::Ping => {
+                debug!("Ping from {}", peer_addr);
+                self.ping_central_command().await;
+            }
+            Message::DispatchJob(_) => {
+                // Handle job dispatching logic here
+                info!("Dispatching job from {}", peer_addr);
+                self.report_job_complete().await;
+            }
+            _ => (),
+        }
+        Ok(())
     }
 
     pub async fn listen(&mut self) -> io::Result<()> {
@@ -168,13 +193,15 @@ impl ConnectionManager {
                                         continue;
                                     }
                                 };
-                                info!("Received: {:?} from {}", message, peer_addr.ip());
+                                debug!("Received: {:?} from {}", message, peer_addr.ip());
 
-                                // Echo the data back to the client (example of keeping the connection active)
-                                if let Err(e) = stream.write_all(&[]).await {
-                                    error!("Error writing to {}: {}", peer_addr, e);
-                                    break;
-                                }
+                                self.handle_message(message, peer_addr).await?;
+
+                                // // Echo the data back to the client (example of keeping the connection active)
+                                // if let Err(e) = stream.write_all(&[]).await {
+                                //     error!("Error writing to {}: {}", peer_addr, e);
+                                //     break;
+                                // }
 
                                 self.ping_central_command().await;
                             }

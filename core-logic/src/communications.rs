@@ -27,6 +27,7 @@ pub enum Message {
     Ping,
     RegisterAgent(RegisterAgent),
     DispatchJob(DispatchJob),
+    JobComplete,
 }
 
 impl From<&ArchivedMessage> for Message {
@@ -53,6 +54,7 @@ impl From<&ArchivedMessage> for Message {
                     agent_name,
                 })
             }
+            ArchivedMessage::JobComplete => Message::JobComplete,
         }
     }
 }
