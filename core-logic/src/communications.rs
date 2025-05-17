@@ -16,10 +16,17 @@ pub struct RegisterAgent {
 }
 
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
+pub struct DispatchJob {
+    pub job_id: u32,
+    pub job_data: Vec<u8>,
+    pub agent_name: String,
+}
+
+#[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub enum Message {
     Ping,
     RegisterAgent(RegisterAgent),
-    //DispatchJob,
+    DispatchJob(DispatchJob),
 }
 
 impl From<&ArchivedMessage> for Message {
@@ -34,6 +41,16 @@ impl From<&ArchivedMessage> for Message {
                     name,
                     hostname,
                     port,
+                })
+            }
+            ArchivedMessage::DispatchJob(archived) => {
+                let job_id = archived.job_id;
+                let job_data = archived.job_data.to_vec();
+                let agent_name = archived.agent_name.to_string();
+                Message::DispatchJob(DispatchJob {
+                    job_id: job_id.into(),
+                    job_data,
+                    agent_name,
                 })
             }
         }

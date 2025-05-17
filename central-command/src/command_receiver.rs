@@ -84,6 +84,7 @@ impl CommandReceiver {
                                 Self::register_agent(datastore_client.clone(), register_agent)
                                     .await;
                             }
+                            _ => (),
                         }
                     }
                 }
