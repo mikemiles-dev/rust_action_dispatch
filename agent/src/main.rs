@@ -155,7 +155,7 @@ impl ConnectionManager {
             }
             Message::DispatchJob(_) => {
                 // Handle job dispatching logic here
-                info!("Running" job from {}", peer_addr);
+                info!("Running job from {}", peer_addr);
                 self.report_job_complete().await;
             }
             _ => (),
