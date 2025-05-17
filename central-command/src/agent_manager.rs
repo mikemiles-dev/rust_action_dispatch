@@ -200,9 +200,37 @@ impl AgentManager {
         Ok(vec![dispatch_job])
     }
 
+    async fn dispatch_job_to_agent(
+        &mut self,
+        job: DispatchJob,
+        agent_name: String,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let (_, stream) = self
+            .connected_agents
+            .iter_mut()
+            .find(|(agent, _)| agent.name == agent_name)
+            .ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    format!("Agent {} not found", agent_name),
+                )
+            })?;
+
+        let message: Vec<u8> = match Message::DispatchJob(job).try_into() {
+            Ok(msg) => msg,
+            Err(e) => {
+                error!("Failed to serialize message: {}", e);
+                return Err(Box::new(e));
+            }
+        };
+
+        stream.write_all(&message).await?;
+        Ok(())
+    }
+
     /// Check if connected agents are still reachable
     pub async fn start(self) {
-        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
+        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 30;
         const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
         const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 1;
 
@@ -258,7 +286,7 @@ impl AgentManager {
         let manager_clone = manager.clone();
         spawn(async move {
             loop {
-                let manager_lock = manager_clone.lock().await;
+                let mut manager_lock = manager_clone.lock().await;
                 let jobs_to_dispatch = match manager_lock.get_jobs_to_dispatch().await {
                     Ok(jobs) => jobs,
                     Err(e) => {
@@ -275,8 +303,16 @@ impl AgentManager {
                         // Dispatch the job to the appropriate agent
                     }
                 }
+                for job in jobs_to_dispatch.iter() {
+                    debug!("Dispatching job: {:?}", job);
+                    manager_lock
+                        .dispatch_job_to_agent(job.clone(), "foo2".to_string())
+                        .await
+                        .unwrap();
+                    // Dispatch the job to the appropriate agent
+                }
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
-                sleep(Duration::from_secs(1)).await;
+                sleep(Duration::from_secs(5)).await;
             }
         });
     }
