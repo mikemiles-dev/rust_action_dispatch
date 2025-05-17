@@ -62,32 +62,38 @@ impl CommandReceiver {
             spawn(async move {
                 let mut buffer = [0; 1024];
                 loop {
-                    let n = stream.read(&mut buffer).await.unwrap();
-                    if n == 0 {
-                        info!("Connection with {} closed by peer.", peer_addr);
-                        break; // Connection closed by the client
-                    } else {
-                        let received = buffer[..n].to_vec();
-                        let message: Message = match received.try_into() {
-                            Ok(msg) => msg,
-                            Err(e) => {
-                                error!("Failed to deserialize message: {}", e);
-                                continue;
-                            }
-                        };
+                    match stream.read(&mut buffer).await {
+                        Ok(0) => {
+                            info!("Connection with {} closed by peer.", peer_addr);
+                            break; // Connection closed by the client
+                        }
+                        Ok(n) => {
+                            let received = buffer[..n].to_vec();
+                            let message: Message = match received.try_into() {
+                                Ok(msg) => msg,
+                                Err(e) => {
+                                    error!("Failed to deserialize message: {}", e);
+                                    continue;
+                                }
+                            };
 
-                        match message {
-                            Message::Ping => {
-                                info!("Ping received from {}", peer_addr);
+                            match message {
+                                Message::Ping => {
+                                    info!("Ping received from {}", peer_addr);
+                                }
+                                Message::RegisterAgent(register_agent) => {
+                                    Self::register_agent(datastore_client.clone(), register_agent)
+                                        .await
+                                }
+                                Message::JobComplete => {
+                                    info!("Job complete received");
+                                }
+                                _ => (),
                             }
-                            Message::RegisterAgent(register_agent) => {
-                                Self::register_agent(datastore_client.clone(), register_agent)
-                                    .await;
-                            }
-                            Message::JobComplete => {
-                                info!("Job complete received");
-                            }
-                            _ => (),
+                        }
+                        Err(e) => {
+                            error!("Failed to read from connection {}: {}", peer_addr, e);
+                            break;
                         }
                     }
                 }

@@ -120,7 +120,7 @@ impl ConnectionManager {
         })
     }
 
-    pub async fn register(&mut self) {
+    async fn register(&mut self) {
         let registered_agent = RegisterAgent {
             name: get_agent_name(),
             hostname: hostname::get()
@@ -133,7 +133,7 @@ impl ConnectionManager {
         self.central_command_writer.write(message).await;
     }
 
-    pub async fn ping_central_command(&mut self) {
+    async fn ping_central_command(&mut self) {
         let message = Message::Ping;
         self.central_command_writer.write(message).await;
     }
