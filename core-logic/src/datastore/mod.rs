@@ -71,4 +71,15 @@ impl Datastore {
 
         Ok(Datastore { client })
     }
+
+    pub async fn get_collection<T: serde::de::DeserializeOwned>(
+        &self,
+        collection_name: &str,
+    ) -> Result<Collection<T>, Box<dyn Error>> {
+        let collection = self
+            .client
+            .database("rust-action-dispatch")
+            .collection::<T>(collection_name);
+        Ok(collection)
+    }
 }

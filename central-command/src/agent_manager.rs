@@ -53,39 +53,53 @@ impl AgentManager {
     async fn fetch_agents(
         &mut self,
     ) -> Result<HashSet<ConnectedAgent>, Box<dyn std::error::Error>> {
-        // let filter = doc! { "age": { "$gt": 25 } };
+        let agents = self.fetch_agents_from_db().await?;
+        let new_agents = self.convert_to_connected_agents(agents).await?;
+        Ok(new_agents)
+    }
+
+    async fn fetch_agents_from_db(&self) -> Result<Vec<AgentV1>, Box<dyn std::error::Error>> {
+        let collection = self.datastore.get_collection::<AgentV1>("agents").await?;
         let filter = Document::new();
-        let collection = self
-            .datastore
-            .client
-            .database("rust-action-dispatch")
-            .collection::<AgentV1>("agents");
         let mut cursor = collection.find(filter, None).await?;
         let mut agents = vec![];
-        while let Some(agent) = match cursor.try_next().await {
-            Ok(agent) => agent,
-            Err(e) => return Err(Box::new(e)),
-        } {
+        while let Some(agent) = cursor.try_next().await? {
             agents.push(agent);
         }
+        Ok(agents)
+    }
 
+    async fn convert_to_connected_agents(
+        &self,
+        agents: Vec<AgentV1>,
+    ) -> Result<HashSet<ConnectedAgent>, Box<dyn std::error::Error>> {
         let mut new_agents = HashSet::new();
         for register_agent in agents.iter() {
-            let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
-            let mut socket_addr = addr.to_socket_addrs()?;
-            let socket_addr = match socket_addr.next() {
-                Some(addr) => addr,
-                None => {
-                    error!("Invalid agent! {:?}", register_agent);
-                    continue;
+            match self.create_connected_agent(register_agent).await {
+                Ok(agent) => {
+                    new_agents.insert(agent);
                 }
-            };
-            new_agents.insert(ConnectedAgent {
-                name: register_agent.name.clone(),
-                address: socket_addr,
-            });
+                Err(e) => {
+                    error!("Failed to create connected agent: {:?}", e);
+                }
+            }
         }
         Ok(new_agents)
+    }
+
+    async fn create_connected_agent(
+        &self,
+        agent: &AgentV1,
+    ) -> Result<ConnectedAgent, Box<dyn std::error::Error>> {
+        let addr = format!("{}:{}", agent.hostname, agent.port);
+        let mut socket_addr = addr.to_socket_addrs()?;
+        let socket_addr = socket_addr.next().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid address")
+        })?;
+        Ok(ConnectedAgent {
+            name: agent.name.clone(),
+            address: socket_addr,
+        })
     }
 
     async fn check_unconnected(&mut self) {
@@ -93,7 +107,7 @@ impl AgentManager {
         let unconnected_agents = self.get_unconnected().await;
         if !unconnected_agents.is_empty() {
             info!(
-                "Found unconnected agents: {:?}",
+                "Agents that are not connected: {:?}",
                 unconnected_agents
                     .iter()
                     .map(|a| a.address)
@@ -181,9 +195,10 @@ impl AgentManager {
 
         loop {
             if last_agent_db_check.elapsed().as_secs() > AGENT_DB_CHECK_INTERVAL_SECONDS {
+                debug!("Checking for new agents in the database...");
                 let _ = self.fetch_agents().await;
                 info!(
-                    "Connected agents are: {{{}}}",
+                    "Agents that are connected: {{{}}}",
                     self.connected_agents
                         .keys()
                         .map(|a| format!("{}:{}", a.name, a.address))

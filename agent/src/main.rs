@@ -41,7 +41,6 @@ async fn main() -> io::Result<()> {
         .expect("Failed to create connection manager");
 
     connection_manager.register().await;
-
     connection_manager.listen().await?;
 
     Ok(())
