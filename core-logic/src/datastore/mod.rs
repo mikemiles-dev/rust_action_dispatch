@@ -1,4 +1,4 @@
-pub mod agent;
+pub mod agents;
 
 use mongodb::{
     Client, Collection, IndexModel,
@@ -12,7 +12,7 @@ use std::error::Error;
 
 use tracing::{info, warn};
 
-use agent::AgentV1;
+use agents::AgentV1;
 
 const MONGODB_URI: &str = "mongodb://localhost:27017";
 

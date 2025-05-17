@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use core_logic::communications::Message;
-use core_logic::datastore::{Datastore, agent::AgentV1};
+use core_logic::datastore::{Datastore, agents::AgentV1};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct ConnectedAgent {
@@ -50,6 +50,7 @@ impl AgentManager {
         }
     }
 
+    /// Fetch agents from the database and convert them to ConnectedAgent
     async fn fetch_agents(
         &mut self,
     ) -> Result<HashSet<ConnectedAgent>, Box<dyn std::error::Error>> {
@@ -58,6 +59,7 @@ impl AgentManager {
         Ok(new_agents)
     }
 
+    /// Fetch agents from the database
     async fn fetch_agents_from_db(&self) -> Result<Vec<AgentV1>, Box<dyn std::error::Error>> {
         let collection = self.datastore.get_collection::<AgentV1>("agents").await?;
         let filter = Document::new();
@@ -69,24 +71,26 @@ impl AgentManager {
         Ok(agents)
     }
 
+    /// Convert agents to ConnectedAgent
     async fn convert_to_connected_agents(
         &self,
         agents: Vec<AgentV1>,
     ) -> Result<HashSet<ConnectedAgent>, Box<dyn std::error::Error>> {
         let mut new_agents = HashSet::new();
-        for register_agent in agents.iter() {
-            match self.create_connected_agent(register_agent).await {
+        for agent in agents.iter() {
+            match self.create_connected_agent(agent).await {
                 Ok(agent) => {
                     new_agents.insert(agent);
                 }
                 Err(e) => {
-                    error!("Failed to create connected agent: {:?}", e);
+                    error!("Unable to connect to agent {}: {:?}", agent, e);
                 }
             }
         }
         Ok(new_agents)
     }
 
+    /// Create a ConnectedAgent from an AgentV1
     async fn create_connected_agent(
         &self,
         agent: &AgentV1,
@@ -102,6 +106,7 @@ impl AgentManager {
         })
     }
 
+    /// Check for unconnected agents and connect to them
     async fn check_unconnected(&mut self) {
         debug!("Checking for unconnected agents...");
         let unconnected_agents = self.get_unconnected().await;
@@ -117,6 +122,7 @@ impl AgentManager {
         }
     }
 
+    /// Get unconnected agents
     async fn get_unconnected(&mut self) -> Vec<ConnectedAgent> {
         let fetched_agents = match self.fetch_agents().await {
             Ok(agents) => agents,
@@ -134,6 +140,7 @@ impl AgentManager {
             .collect()
     }
 
+    /// Connect to unconnected agents
     async fn connect_unconnected(&mut self, unconnected_agents: Vec<ConnectedAgent>) {
         for agent in unconnected_agents.into_iter() {
             match TcpStream::connect(agent.address).await {
@@ -148,6 +155,7 @@ impl AgentManager {
         }
     }
 
+    /// Check if connected agents are still reachable
     async fn check_connected(&mut self) {
         let mut agents_to_remove = Vec::new();
 
@@ -178,6 +186,7 @@ impl AgentManager {
         }
     }
 
+    /// Check if connected agents are still reachable
     pub async fn start(&mut self) {
         const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 10;
         const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 5;

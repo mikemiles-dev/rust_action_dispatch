@@ -19,6 +19,7 @@ pub struct RegisterAgent {
 pub enum Message {
     Ping,
     RegisterAgent(RegisterAgent),
+    //DispatchJob,
 }
 
 impl From<&ArchivedMessage> for Message {

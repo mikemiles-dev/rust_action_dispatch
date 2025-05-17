@@ -8,7 +8,7 @@ use tracing::{error, info, warn};
 use std::error::Error;
 use std::sync::Arc;
 
-use core_logic::datastore::{Datastore, agent::AgentV1};
+use core_logic::datastore::{Datastore, agents::AgentV1};
 
 const SERVER_ADDRESS: &str = "0.0.0.0:8080";
 
