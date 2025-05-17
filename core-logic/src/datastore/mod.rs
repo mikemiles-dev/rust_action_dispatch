@@ -1,4 +1,5 @@
 pub mod agents;
+pub mod jobs;
 
 use mongodb::{
     Client, Collection, IndexModel,
@@ -13,6 +14,7 @@ use std::error::Error;
 use tracing::{info, warn};
 
 use agents::AgentV1;
+use jobs::JobV1;
 
 const MONGODB_URI: &str = "mongodb://localhost:27017";
 
@@ -66,6 +68,10 @@ impl Datastore {
 
         let agents = db.collection::<bson::Document>("agents");
         AgentV1::create_indicies(&agents)
+            .await
+            .expect("Failed to create mongodb indices");
+        let jobs = db.collection::<bson::Document>("jobs");
+        JobV1::create_indicies(&jobs)
             .await
             .expect("Failed to create mongodb indices");
 

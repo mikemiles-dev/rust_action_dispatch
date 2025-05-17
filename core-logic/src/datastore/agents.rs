@@ -1,5 +1,8 @@
 use bson::oid::ObjectId;
-use mongodb::bson::{Document, doc};
+use mongodb::{
+    Collection,
+    bson::{Document, doc},
+};
 use serde::{Deserialize, Serialize};
 
 use std::error::Error;
@@ -18,9 +21,7 @@ pub struct AgentV1 {
 }
 
 impl AgentV1 {
-    pub async fn create_indicies(
-        collection: &mongodb::Collection<Document>,
-    ) -> Result<(), Box<dyn Error>> {
+    pub async fn create_indicies(collection: &Collection<Document>) -> Result<(), Box<dyn Error>> {
         let index_doc = doc! { "hostname": 1, "port": 1 };
         Datastore::create_indicies(collection, index_doc).await?;
         let index_doc = doc! { "name": 1, };
