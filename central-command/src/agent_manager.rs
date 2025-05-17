@@ -2,15 +2,17 @@ use bson::Document;
 use futures::stream::TryStreamExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
+use tokio::spawn;
+use tokio::sync::Mutex;
 use tracing::{debug, error, info};
 
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use core_logic::communications::Message;
+use core_logic::communications::{DispatchJob, Message};
 use core_logic::datastore::{Datastore, agents::AgentV1};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -186,51 +188,91 @@ impl AgentManager {
         }
     }
 
+    pub async fn get_jobs_to_dispatch(
+        &self,
+    ) -> Result<Vec<DispatchJob>, Box<dyn std::error::Error>> {
+        let dispatch_job = DispatchJob {
+            job_id: 1,
+            agent_name: "foo2".to_string(),
+            job_data: vec![],
+        };
+        Ok(vec![dispatch_job])
+    }
+
     /// Check if connected agents are still reachable
-    pub async fn start(&mut self) {
-        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 10;
-        const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 5;
-        const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 5;
+    pub async fn start(self) {
+        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
+        const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
+        const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 1;
 
-        let mut last_connected_check = Instant::now()
-            .checked_sub(Duration::from_secs(CONNECT_CHECK_INTERVAL_SECONDS))
-            .unwrap_or(Instant::now());
-        let mut last_unconnected_check = Instant::now()
-            .checked_sub(Duration::from_secs(UNCONNECT_CHECK_INTERVAL_SECONDS))
-            .unwrap_or(Instant::now());
-        let mut last_agent_db_check = Instant::now()
-            .checked_sub(Duration::from_secs(AGENT_DB_CHECK_INTERVAL_SECONDS))
-            .unwrap_or(Instant::now());
+        let manager = Arc::new(Mutex::new(self)); // Ownership of `self` is moved here
 
-        loop {
-            if last_agent_db_check.elapsed().as_secs() > AGENT_DB_CHECK_INTERVAL_SECONDS {
+        // Spawn a task to periodically check for new agents in the database
+        let manager_clone = manager.clone();
+        spawn(async move {
+            loop {
+                let mut manager_lock = manager_clone.lock().await;
                 debug!("Checking for new agents in the database...");
-                if let Err(fetch_agents_error) = self.fetch_agents().await {
+                if let Err(fetch_agents_error) = manager_lock.fetch_agents().await {
                     error!("Error fetching agents: {}", fetch_agents_error);
                 }
                 info!(
                     "Agents that are connected: {{{}}}",
-                    self.connected_agents
+                    manager_lock
+                        .connected_agents
                         .keys()
                         .take(100) // Limit to 100 for logging
                         .map(|a| format!("{}:{}", a.name, a.address))
                         .collect::<Vec<_>>()
                         .join(", ")
                 );
-                last_agent_db_check = Instant::now();
+                tokio::time::sleep(Duration::from_secs(AGENT_DB_CHECK_INTERVAL_SECONDS)).await;
             }
+        });
 
-            if last_connected_check.elapsed().as_secs() > CONNECT_CHECK_INTERVAL_SECONDS {
-                self.check_connected().await;
-                last_connected_check = Instant::now();
+        // Spawn a task to periodically check for unconnected agents
+        let manager_clone = manager.clone();
+        spawn(async move {
+            loop {
+                let mut manager_lock = manager_clone.lock().await;
+                manager_lock.check_connected().await;
+                tokio::time::sleep(Duration::from_secs(CONNECT_CHECK_INTERVAL_SECONDS)).await;
             }
+        });
 
-            if last_unconnected_check.elapsed().as_secs() > UNCONNECT_CHECK_INTERVAL_SECONDS {
-                self.check_unconnected().await;
-                last_unconnected_check = Instant::now();
+        // Spawn a task to periodically check for unconnected agents
+        let manager_clone = manager.clone();
+        spawn(async move {
+            loop {
+                let mut manager_lock = manager_clone.lock().await;
+                manager_lock.check_unconnected().await;
+                tokio::time::sleep(Duration::from_secs(UNCONNECT_CHECK_INTERVAL_SECONDS)).await;
             }
+        });
 
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        }
+        // Spawn a task to periodically check for jobs to dispatch
+        let manager_clone = manager.clone();
+        spawn(async move {
+            loop {
+                let manager_lock = manager_clone.lock().await;
+                let jobs_to_dispatch = match manager_lock.get_jobs_to_dispatch().await {
+                    Ok(jobs) => jobs,
+                    Err(e) => {
+                        error!("Error getting jobs to dispatch: {}", e);
+                        continue;
+                    }
+                };
+
+                if jobs_to_dispatch.is_empty() {
+                    debug!("No jobs to dispatch.");
+                } else {
+                    for job in jobs_to_dispatch.iter() {
+                        debug!("Dispatching job: {:?}", job);
+                        // Dispatch the job to the appropriate agent
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
+        });
     }
 }

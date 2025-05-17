@@ -45,7 +45,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Spawn a task to connect to the server and send data
     spawn(async move {
-        let mut agent_manager = AgentManager::new(cloned_datastore).await;
+        let agent_manager = AgentManager::new(cloned_datastore).await;
         agent_manager.start().await;
     });
 
