@@ -205,11 +205,14 @@ impl AgentManager {
         loop {
             if last_agent_db_check.elapsed().as_secs() > AGENT_DB_CHECK_INTERVAL_SECONDS {
                 debug!("Checking for new agents in the database...");
-                let _ = self.fetch_agents().await;
+                if let Err(fetch_agents_error) = self.fetch_agents().await {
+                    error!("Error fetching agents: {}", fetch_agents_error);
+                }
                 info!(
                     "Agents that are connected: {{{}}}",
                     self.connected_agents
                         .keys()
+                        .take(100) // Limit to 100 for logging
                         .map(|a| format!("{}:{}", a.name, a.address))
                         .collect::<Vec<_>>()
                         .join(", ")
