@@ -33,7 +33,13 @@ impl CommandReceiver {
         let db = datastore_client.client.database("rust-action-dispatch");
         let agents_collection = db.collection::<Document>("agents");
         let agent: AgentV1 = register_agent.into();
-        let bson_agent = bson::to_document(&agent).unwrap();
+        let bson_agent = match bson::to_document(&agent) {
+            Ok(doc) => doc,
+            Err(e) => {
+                error!("Failed to convert agent to BSON: {}", e);
+                return;
+            }
+        };
         let result = agents_collection.insert_one(bson_agent, None).await;
         match result {
             Ok(_) => {
