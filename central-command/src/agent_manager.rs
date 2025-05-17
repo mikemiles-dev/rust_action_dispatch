@@ -10,7 +10,7 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use core_logic::communications::{Message, RegisterAgent};
+use core_logic::communications::Message;
 use core_logic::datastore::{Datastore, agent::AgentV1};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -39,7 +39,6 @@ impl TryFrom<AgentV1> for ConnectedAgent {
 #[derive(Debug)]
 pub struct AgentManager {
     datastore: Arc<Datastore>,
-    agents: HashSet<ConnectedAgent>,
     connected_agents: HashMap<ConnectedAgent, TcpStream>,
 }
 
@@ -47,12 +46,13 @@ impl AgentManager {
     pub async fn new(datastore: Arc<Datastore>) -> Self {
         Self {
             datastore,
-            agents: HashSet::new(),
             connected_agents: HashMap::new(),
         }
     }
 
-    async fn fetch_agents(&mut self) {
+    async fn fetch_agents(
+        &mut self,
+    ) -> Result<HashSet<ConnectedAgent>, Box<dyn std::error::Error>> {
         // let filter = doc! { "age": { "$gt": 25 } };
         let filter = Document::new();
         let collection = self
@@ -60,28 +60,19 @@ impl AgentManager {
             .client
             .database("rust-action-dispatch")
             .collection::<AgentV1>("agents");
-        let mut cursor = match collection.find(filter, None).await {
-            Ok(cursor) => cursor,
-            Err(e) => {
-                error!("Failed to fetch agents: {}", e);
-                return;
-            }
-        };
+        let mut cursor = collection.find(filter, None).await?;
         let mut agents = vec![];
-        while let Some(agent) = cursor.try_next().await.unwrap() {
+        while let Some(agent) = match cursor.try_next().await {
+            Ok(agent) => agent,
+            Err(e) => return Err(Box::new(e)),
+        } {
             agents.push(agent);
         }
 
         let mut new_agents = HashSet::new();
         for register_agent in agents.iter() {
             let addr = format!("{}:{}", register_agent.hostname, register_agent.port);
-            let mut socket_addr = match addr.to_socket_addrs() {
-                Ok(s) => s,
-                Err(_) => {
-                    error!("Inalid agent! {:?}", register_agent);
-                    continue;
-                }
-            };
+            let mut socket_addr = addr.to_socket_addrs()?;
             let socket_addr = match socket_addr.next() {
                 Some(addr) => addr,
                 None => {
@@ -94,12 +85,12 @@ impl AgentManager {
                 address: socket_addr,
             });
         }
-        self.agents = new_agents;
+        Ok(new_agents)
     }
 
     async fn check_unconnected(&mut self) {
         debug!("Checking for unconnected agents...");
-        let unconnected_agents = self.get_unconnected();
+        let unconnected_agents = self.get_unconnected().await;
         if !unconnected_agents.is_empty() {
             info!(
                 "Found unconnected agents: {:?}",
@@ -112,8 +103,17 @@ impl AgentManager {
         }
     }
 
-    fn get_unconnected(&mut self) -> Vec<ConnectedAgent> {
-        self.agents
+    async fn get_unconnected(&mut self) -> Vec<ConnectedAgent> {
+        let fetched_agents = match self.fetch_agents().await {
+            Ok(agents) => agents,
+            Err(e) => {
+                error!("Error fetching agents: {}", e);
+                return Vec::new();
+            }
+        };
+        debug!("Fetched agents: {:?}", fetched_agents);
+
+        fetched_agents
             .iter()
             .filter(|agent| !self.connected_agents.contains_key(agent))
             .cloned()
@@ -181,12 +181,12 @@ impl AgentManager {
 
         loop {
             if last_agent_db_check.elapsed().as_secs() > AGENT_DB_CHECK_INTERVAL_SECONDS {
-                self.fetch_agents().await;
+                let _ = self.fetch_agents().await;
                 info!(
                     "Connected agents are: {{{}}}",
-                    self.agents
-                        .iter()
-                        .map(|a| format!("{} => {}", a.name, a.address))
+                    self.connected_agents
+                        .keys()
+                        .map(|a| format!("{}:{}", a.name, a.address))
                         .collect::<Vec<_>>()
                         .join(", ")
                 );

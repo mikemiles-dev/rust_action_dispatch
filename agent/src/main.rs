@@ -1,4 +1,3 @@
-use hostname;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{error, info};
@@ -14,14 +13,12 @@ static AGENT_PORT: OnceLock<u16> = OnceLock::new();
 static AGENT_NAME: OnceLock<String> = OnceLock::new();
 
 fn get_agent_port() -> u16 {
-    AGENT_PORT
-        .get_or_init(|| {
-            env::var("AGENT_PORT")
-                .unwrap_or("8081".to_string())
-                .parse()
-                .expect("Invalid AGENT_PORT")
-        })
-        .clone()
+    *AGENT_PORT.get_or_init(|| {
+        env::var("AGENT_PORT")
+            .unwrap_or("8081".to_string())
+            .parse()
+            .expect("Invalid AGENT_PORT")
+    })
 }
 
 fn get_agent_name() -> String {
@@ -175,7 +172,7 @@ impl ConnectionManager {
                                 info!("Received: {:?} from {}", message, peer_addr.ip());
 
                                 // Echo the data back to the client (example of keeping the connection active)
-                                if let Err(e) = stream.write_all(&vec![]).await {
+                                if let Err(e) = stream.write_all(&[]).await {
                                     error!("Error writing to {}: {}", peer_addr, e);
                                     break;
                                 }

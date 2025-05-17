@@ -2,7 +2,7 @@ pub mod agent;
 
 use mongodb::{
     Client, Collection, IndexModel,
-    bson::{Document, doc},
+    bson::Document,
     error::Error as MongoError,
     options::{ClientOptions, IndexOptions, ResolverConfig},
 };
@@ -10,15 +10,9 @@ use mongodb::{
 use std::env;
 use std::error::Error;
 
-use tokio::{
-    spawn,
-    sync::mpsc::{self, Receiver, Sender},
-};
 use tracing::{info, warn};
 
 use agent::AgentV1;
-
-use futures::StreamExt;
 
 const MONGODB_URI: &str = "mongodb://localhost:27017";
 

@@ -1,8 +1,5 @@
 use bson::Document;
-use core_logic::{
-    communications::{Message, RegisterAgent},
-    datastore::{self, agent},
-};
+use core_logic::communications::{Message, RegisterAgent};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
 use tokio::spawn;
@@ -11,7 +8,7 @@ use tracing::{error, info, warn};
 use std::error::Error;
 use std::sync::Arc;
 
-use core_logic::datastore::{DataStoreTypes, Datastore, agent::AgentV1};
+use core_logic::datastore::{Datastore, agent::AgentV1};
 
 const SERVER_ADDRESS: &str = "0.0.0.0:8080";
 

@@ -1,7 +1,6 @@
 mod agent_manager;
 mod command_receiver;
 
-use mongodb::Client;
 use std::sync::Arc;
 use tokio::spawn;
 use tracing::info;
@@ -42,8 +41,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
 
     // Clone the sender for use in the agent manager
-    let cloned_datastore = datastore.clone();
-
     let cloned_datastore = datastore.clone();
 
     // Spawn a task to connect to the server and send data
