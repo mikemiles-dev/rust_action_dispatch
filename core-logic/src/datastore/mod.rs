@@ -5,11 +5,12 @@ use mongodb::{
     Client, Collection, IndexModel,
     bson::Document,
     error::Error as MongoError,
-    options::{ClientOptions, IndexOptions, ResolverConfig},
+    options::{ClientOptions, IndexOptions, ResolverConfig, Tls, TlsOptions},
 };
 
 use std::env;
 use std::error::Error;
+use std::path::PathBuf;
 
 use tracing::{info, warn};
 
@@ -58,11 +59,25 @@ impl Datastore {
             }
         };
         info!("Connecting to MongoDB at {}", client_uri);
-        // A Client is needed to connect to MongoDB:
-        // An extra line of code to work around a DNS issue on Windows:
-        let options =
+
+        let mongo_cert_crt = env::var("MONGO_CRT").unwrap_or("../keys/server.crt".to_string());
+        let ca_file_path = PathBuf::from(mongo_cert_crt); // Path to your CA certificate (self-signed acts as CA)
+        let mongo_cert_pem = env::var("MONGO_PEM").unwrap_or("../keys/server.pem".to_string());
+        let cert_key_file_path = PathBuf::from(mongo_cert_pem); // Path to your combined certificate and private key
+
+        let mut options =
             ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare())
                 .await?;
+
+        let tls_options = TlsOptions::builder()
+            .ca_file_path(Some(ca_file_path))
+            .cert_key_file_path(Some(cert_key_file_path))
+            // If your private key in server.pem is password-protected, you'd add:
+            // .tls_certificate_key_file_password(Some("your_password".to_string().into_bytes()))
+            .build();
+
+        options.tls = Some(Tls::Enabled(tls_options));
+
         let client = Client::with_options(options)?;
         let db = client.database("rust-action-dispatch");
 

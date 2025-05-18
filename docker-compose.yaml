@@ -10,7 +10,7 @@ services:
       - mongodb_data:/data/db
     ports:
       - "27017:27017"
-    command: mongod --tlsMode requireTLS --tlsCertificateKeyFile /etc/ssl/mongodb/server.pem --tlsCAFile /etc/ssl/mongodb/server.pem --bind_ip_all
+    command: mongod --tlsMode requireTLS --tlsCertificateKeyFile /etc/ssl/mongodb/server.pem --tlsCAFile /etc/ssl/mongodb/server.crt --bind_ip_all
     healthcheck:
       test: "mongo --eval 'db.adminCommand('ping').ok'"
       interval: 5s
