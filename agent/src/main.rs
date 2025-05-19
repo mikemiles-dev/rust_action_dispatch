@@ -174,7 +174,7 @@ impl ConnectionManager {
             info!("New connection from: {}", peer_addr);
 
             // Spawn a new task to handle the connection
-            let mut buffer = [0; 1024];
+            let mut buffer = [0; 65536];
 
             loop {
                 tokio::select! {
@@ -202,8 +202,7 @@ impl ConnectionManager {
                                 //     error!("Error writing to {}: {}", peer_addr, e);
                                 //     break;
                                 // }
-
-                                self.ping_central_command().await;
+                                //self.ping_central_command().await;
                             }
                             Err(e) => {
                                 error!("Error reading from {}: {}", peer_addr, e);

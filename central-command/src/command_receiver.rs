@@ -60,7 +60,7 @@ impl CommandReceiver {
 
             // Spawn a new task to handle the connection
             spawn(async move {
-                let mut buffer = [0; 1024];
+                let mut buffer = [0; 65536];
                 loop {
                     match stream.read(&mut buffer).await {
                         Ok(0) => {
