@@ -154,15 +154,6 @@ impl ConnectionManager {
             .await;
     }
 
-    async fn report_job_complete(&mut self) {
-        let message = Message::JobComplete;
-        self.central_command_writer
-            .lock()
-            .await
-            .write(message)
-            .await;
-    }
-
     async fn handle_message(
         &mut self,
         message: Message,
@@ -175,9 +166,8 @@ impl ConnectionManager {
             }
             Message::DispatchJob(job) => {
                 // Handle job dispatching logic here
-                info!("Running job {:?} from {}", job, peer_addr);
-                self.job_dispatcher.spawn("Job 1".to_string()).await;
-                //self.report_job_complete().await;
+                info!("Running job {} from {}", job.job_name, peer_addr);
+                self.job_dispatcher.spawn(job).await;
             }
             _ => (),
         }

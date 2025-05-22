@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tokio::process::Command;
 use tokio::spawn;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{self, Sender};
@@ -7,10 +8,9 @@ use tokio::time::{Duration, sleep};
 use tracing::{error, info};
 
 use crate::CentralCommandWriter;
-use core_logic::communications::Message;
+use core_logic::communications::{DispatchJob, Message};
 
 pub struct JobDispatcher {
-    central_command_writer: Arc<Mutex<CentralCommandWriter>>,
     sender: Sender<String>,
 }
 
@@ -31,21 +31,56 @@ impl JobDispatcher {
             }
         });
 
-        JobDispatcher {
-            central_command_writer,
-            sender,
-        }
+        JobDispatcher { sender }
     }
 
     // Todo make real command runner
-    pub async fn spawn(&mut self, job_name: String) {
+    pub async fn spawn(&mut self, job: DispatchJob) {
         let sender = self.sender.clone();
         spawn(async move {
-            info!("Spawning job: {}", job_name);
-            // Simulate job processing
+            let job_name = job.job_name.clone();
+            let command = job.command.clone();
+            // Here you would run the job, e.g., by executing a command
+            info!("Spawning job: {} with command: {}", job_name, command);
+
+            let mut command = Command::new(command);
+
+            let output = match command.output().await {
+                Ok(output) => output,
+                Err(e) => {
+                    error!("Failed to execute command: {}", e);
+                    return;
+                }
+            };
+
+            // 4. Process the output.
+            // if output.status.success() {
+            //     if let Err(e) = io::stdout().write_all(&output.stdout) {
+            //         error!("Failed to write to stdout: {}", e);
+            //     }
+            //     error!("Command successful.");
+            // } else {
+            //     if let Err(e) = io::stderr().write_all(&output.stderr) {
+            //         error!("Failed to write to stderr: {}", e);
+            //     }
+            //     error!("Command failed with status: {}", output.status);
+            // }
+
+            // Get the numerical return code (if available)
+            if let Some(code) = output.status.code() {
+                println!("Return Code: {}", code);
+            } else {
+                println!("Command terminated by signal (no return code).");
+            }
+
+            info!("Output is: {:?}", output);
+
             sleep(Duration::from_secs(5)).await;
             info!("Job {} completed", job_name);
-            sender.send(job_name).await.unwrap();
+
+            if let Err(e) = sender.send(job_name).await {
+                error!("Failed to send job name: {}", e);
+            }
         });
     }
 }

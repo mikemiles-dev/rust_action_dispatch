@@ -193,9 +193,9 @@ impl AgentManager {
         &self,
     ) -> Result<Vec<DispatchJob>, Box<dyn std::error::Error>> {
         let dispatch_job = DispatchJob {
-            job_id: 1,
-            agent_name: "foo2".to_string(),
-            command: "ls -al".to_string(),
+            job_name: "JOB123".to_string(),
+            agent_name: Some("foo2".to_string()),
+            command: "/bin/ls".to_string(),
         };
         Ok(vec![dispatch_job])
     }

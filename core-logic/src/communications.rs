@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
+use rkyv::{Archive, Deserialize, Serialize, option::ArchivedOption, rancor::Error};
 use uuid::Uuid;
 
 pub enum Direction {
@@ -17,9 +17,9 @@ pub struct RegisterAgent {
 
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub struct DispatchJob {
-    pub job_id: u32,
+    pub job_name: String,
     pub command: String,
-    pub agent_name: String,
+    pub agent_name: Option<String>,
 }
 
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
@@ -45,11 +45,14 @@ impl From<&ArchivedMessage> for Message {
                 })
             }
             ArchivedMessage::DispatchJob(archived) => {
-                let job_id = archived.job_id;
+                let job_name = archived.job_name.to_string();
                 let job_data = archived.command.to_string();
-                let agent_name = archived.agent_name.to_string();
+                let agent_name = match &archived.agent_name {
+                    ArchivedOption::None => None,
+                    ArchivedOption::Some(name) => Some(name.to_string()),
+                };
                 Message::DispatchJob(DispatchJob {
-                    job_id: job_id.into(),
+                    job_name: job_name.to_string(),
                     command: job_data,
                     agent_name,
                 })
