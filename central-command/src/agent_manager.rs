@@ -195,7 +195,7 @@ impl AgentManager {
         let dispatch_job = DispatchJob {
             job_id: 1,
             agent_name: "foo2".to_string(),
-            job_data: vec![],
+            command: "ls -al".to_string(),
         };
         Ok(vec![dispatch_job])
     }

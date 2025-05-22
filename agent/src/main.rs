@@ -1,8 +1,12 @@
+mod job_dispatch;
+
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::Mutex;
 use tracing::{debug, error, info};
 
 use std::io;
+use std::sync::Arc;
 use std::{env, sync::OnceLock};
 
 use core_logic::communications::{Message, RegisterAgent};
@@ -47,7 +51,8 @@ async fn main() -> io::Result<()> {
 }
 
 pub struct ConnectionManager {
-    central_command_writer: CentralCommandWriter,
+    central_command_writer: Arc<Mutex<CentralCommandWriter>>,
+    job_dispatcher: job_dispatch::JobDispatcher,
 }
 
 pub struct CentralCommandWriter {
@@ -115,8 +120,11 @@ impl CentralCommandWriter {
 
 impl ConnectionManager {
     pub async fn try_new() -> io::Result<Self> {
+        let central_command_writer = Arc::new(Mutex::new(CentralCommandWriter::try_new().await?));
+
         Ok(Self {
-            central_command_writer: CentralCommandWriter::try_new().await?,
+            central_command_writer: central_command_writer.clone(),
+            job_dispatcher: job_dispatch::JobDispatcher::new(central_command_writer),
         })
     }
 
@@ -130,17 +138,29 @@ impl ConnectionManager {
             port: get_agent_port(),
         };
         let message = Message::RegisterAgent(registered_agent);
-        self.central_command_writer.write(message).await;
+        self.central_command_writer
+            .lock()
+            .await
+            .write(message)
+            .await;
     }
 
     async fn ping_central_command(&mut self) {
         let message = Message::Ping;
-        self.central_command_writer.write(message).await;
+        self.central_command_writer
+            .lock()
+            .await
+            .write(message)
+            .await;
     }
 
     async fn report_job_complete(&mut self) {
         let message = Message::JobComplete;
-        self.central_command_writer.write(message).await;
+        self.central_command_writer
+            .lock()
+            .await
+            .write(message)
+            .await;
     }
 
     async fn handle_message(
@@ -153,10 +173,11 @@ impl ConnectionManager {
                 debug!("Ping from {}", peer_addr);
                 self.ping_central_command().await;
             }
-            Message::DispatchJob(_) => {
+            Message::DispatchJob(job) => {
                 // Handle job dispatching logic here
-                info!("Running job from {}", peer_addr);
-                self.report_job_complete().await;
+                info!("Running job {:?} from {}", job, peer_addr);
+                self.job_dispatcher.spawn("Job 1".to_string()).await;
+                //self.report_job_complete().await;
             }
             _ => (),
         }

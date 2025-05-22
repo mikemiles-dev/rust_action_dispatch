@@ -18,7 +18,7 @@ pub struct RegisterAgent {
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub struct DispatchJob {
     pub job_id: u32,
-    pub job_data: Vec<u8>,
+    pub command: String,
     pub agent_name: String,
 }
 
@@ -46,11 +46,11 @@ impl From<&ArchivedMessage> for Message {
             }
             ArchivedMessage::DispatchJob(archived) => {
                 let job_id = archived.job_id;
-                let job_data = archived.job_data.to_vec();
+                let job_data = archived.command.to_string();
                 let agent_name = archived.agent_name.to_string();
                 Message::DispatchJob(DispatchJob {
                     job_id: job_id.into(),
-                    job_data,
+                    command: job_data,
                     agent_name,
                 })
             }
