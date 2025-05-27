@@ -40,10 +40,13 @@ impl JobDispatcher {
         spawn(async move {
             let job_name = job.job_name.clone();
             let command = job.command.clone();
+            let args = job.args.clone();
             // Here you would run the job, e.g., by executing a command
             info!("Spawning job: {} with command: {}", job_name, command);
 
             let mut command = Command::new(command);
+
+            command.args(args.split_whitespace());
 
             let output = match command.output().await {
                 Ok(output) => output,

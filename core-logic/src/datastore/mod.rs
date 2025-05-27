@@ -1,17 +1,27 @@
 pub mod agents;
 pub mod jobs;
 
+use futures::StreamExt;
+use futures::stream::TryStreamExt;
 use mongodb::{
     Client, Collection, IndexModel,
+    action::Watch,
     bson::Document,
     error::Error as MongoError,
-    options::{ClientOptions, IndexOptions, ResolverConfig},
+    options::{
+        ChangeStreamOptions, ClientOptions, FullDocumentBeforeChangeType, FullDocumentType,
+        IndexOptions,
+    },
 };
+use serde::de::DeserializeOwned;
+use tokio::spawn;
+use tokio::sync::mpsc::{Receiver, channel};
 
 use std::env;
 use std::error::Error;
+use std::sync::Arc;
 
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use agents::AgentV1;
 use jobs::JobV1;
@@ -28,7 +38,7 @@ pub struct Datastore {
 }
 
 impl Datastore {
-    pub async fn create_indicies(
+    pub async fn create_unique_index(
         collection: &Collection<Document>,
         doc: Document,
     ) -> Result<(), Box<dyn Error>> {
@@ -38,7 +48,7 @@ impl Datastore {
             .options(index_options)
             .build();
 
-        collection.create_index(index_model, None).await?;
+        collection.create_index(index_model).await?;
 
         Ok(())
     }
@@ -59,9 +69,7 @@ impl Datastore {
         };
         info!("Connecting to MongoDB at {}", client_uri);
 
-        let options =
-            ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare())
-                .await?;
+        let options = ClientOptions::parse(&client_uri).await?;
 
         let client = Client::with_options(options)?;
         let db = client.database("rust-action-dispatch");
@@ -78,7 +86,7 @@ impl Datastore {
         Ok(Datastore { client })
     }
 
-    pub async fn get_collection<T: serde::de::DeserializeOwned>(
+    pub async fn get_collection<T: Sync + std::marker::Send + serde::de::DeserializeOwned>(
         &self,
         collection_name: &str,
     ) -> Result<Collection<T>, Box<dyn Error>> {

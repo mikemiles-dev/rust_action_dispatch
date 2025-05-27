@@ -1,4 +1,4 @@
-use bson::Document;
+use bson::{Document, doc};
 use futures::stream::TryStreamExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use core_logic::communications::{DispatchJob, Message};
-use core_logic::datastore::{Datastore, agents::AgentV1};
+use core_logic::datastore::{Datastore, agents::AgentV1, jobs::JobV1};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct ConnectedAgent {
@@ -53,66 +53,30 @@ impl AgentManager {
         }
     }
 
-    /// Fetch agents from the database and convert them to ConnectedAgent
-    async fn fetch_agents(
-        &mut self,
-    ) -> Result<HashSet<ConnectedAgent>, Box<dyn std::error::Error>> {
-        let agents = self.fetch_agents_from_db().await?;
-        let new_agents = self.convert_to_connected_agents(agents).await?;
-        Ok(new_agents)
-    }
-
     /// Fetch agents from the database
-    async fn fetch_agents_from_db(&self) -> Result<Vec<AgentV1>, Box<dyn std::error::Error>> {
+    /// This function retrieves all agents from the database and converts them into `ConnectedAgent` instances
+    async fn fetch_database_agents(
+        &self,
+    ) -> Result<HashSet<ConnectedAgent>, Box<dyn std::error::Error>> {
         let collection = self.datastore.get_collection::<AgentV1>("agents").await?;
         let filter = Document::new();
-        let mut cursor = collection.find(filter, None).await?;
+        let mut cursor = collection.find(filter).await?;
         let mut agents = vec![];
         while let Some(agent) = cursor.try_next().await? {
             agents.push(agent);
         }
+        let agents: HashSet<ConnectedAgent> = agents
+            .iter()
+            .filter_map(|agent| agent.clone().try_into().ok())
+            .collect();
         Ok(agents)
     }
 
-    /// Convert agents to ConnectedAgent
-    async fn convert_to_connected_agents(
-        &self,
-        agents: Vec<AgentV1>,
-    ) -> Result<HashSet<ConnectedAgent>, Box<dyn std::error::Error>> {
-        let mut new_agents = HashSet::new();
-        for agent in agents.iter() {
-            match self.create_connected_agent(agent).await {
-                Ok(agent) => {
-                    new_agents.insert(agent);
-                }
-                Err(e) => {
-                    error!("Unable to connect to agent {}: {:?}", agent, e);
-                }
-            }
-        }
-        Ok(new_agents)
-    }
-
-    /// Create a ConnectedAgent from an AgentV1
-    async fn create_connected_agent(
-        &self,
-        agent: &AgentV1,
-    ) -> Result<ConnectedAgent, Box<dyn std::error::Error>> {
-        let addr = format!("{}:{}", agent.hostname, agent.port);
-        let mut socket_addr = addr.to_socket_addrs()?;
-        let socket_addr = socket_addr.next().ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid address")
-        })?;
-        Ok(ConnectedAgent {
-            name: agent.name.clone(),
-            address: socket_addr,
-        })
-    }
-
-    /// Check for unconnected agents and connect to them
-    async fn check_unconnected(&mut self) {
+    /// Check for unconnected agents and connect to them.
+    /// This function will periodically check for agents that are not connected
+    async fn check_for_unconnected_agents(&mut self) {
         debug!("Checking for unconnected agents...");
-        let unconnected_agents = self.get_unconnected().await;
+        let unconnected_agents = self.fetch_unconnected_agents().await;
         if !unconnected_agents.is_empty() {
             info!(
                 "Agents that are not connected: {:?}",
@@ -121,13 +85,14 @@ impl AgentManager {
                     .map(|a| a.address)
                     .collect::<Vec<_>>()
             );
-            self.connect_unconnected(unconnected_agents).await;
+            self.connect_unconnected_agents(unconnected_agents).await;
         }
     }
 
-    /// Get unconnected agents
-    async fn get_unconnected(&mut self) -> Vec<ConnectedAgent> {
-        let fetched_agents = match self.fetch_agents().await {
+    /// Get unconnected agents.
+    /// Fetch agents from the database and filter out those that are already connected
+    async fn fetch_unconnected_agents(&mut self) -> Vec<ConnectedAgent> {
+        let fetched_agents = match self.fetch_database_agents().await {
             Ok(agents) => agents,
             Err(e) => {
                 error!("Error fetching agents: {}", e);
@@ -144,7 +109,8 @@ impl AgentManager {
     }
 
     /// Connect to unconnected agents
-    async fn connect_unconnected(&mut self, unconnected_agents: Vec<ConnectedAgent>) {
+    // This function attempts to connect to each unconnected agent and adds them to the `connected_agents` map
+    async fn connect_unconnected_agents(&mut self, unconnected_agents: Vec<ConnectedAgent>) {
         for agent in unconnected_agents.into_iter() {
             match TcpStream::connect(agent.address).await {
                 Ok(stream) => {
@@ -159,7 +125,8 @@ impl AgentManager {
     }
 
     /// Check if connected agents are still reachable
-    async fn check_connected(&mut self) {
+    /// This function sends a ping message to each connected agent and removes those that are unreachable
+    async fn ping_existing_agents(&mut self) {
         let mut agents_to_remove = Vec::new();
 
         for (agent, stream) in self.connected_agents.iter_mut() {
@@ -189,15 +156,17 @@ impl AgentManager {
         }
     }
 
-    pub async fn get_jobs_to_dispatch(
-        &self,
-    ) -> Result<Vec<DispatchJob>, Box<dyn std::error::Error>> {
-        let dispatch_job = DispatchJob {
-            job_name: "JOB123".to_string(),
-            agent_name: Some("foo2".to_string()),
-            command: "/bin/ls".to_string(),
-        };
-        Ok(vec![dispatch_job])
+    pub async fn get_jobs_to_run(&self) -> Result<Vec<JobV1>, Box<dyn std::error::Error>> {
+        let collection = self.datastore.get_collection::<JobV1>("jobs").await?;
+        let mut filter = Document::new();
+        //filter.insert("status", 0); // Assuming 0 is the status for jobs to run
+        //filter.insert("next_run", doc! { "$lte": bson::DateTime::now() });
+        let mut cursor = collection.find(filter).await?;
+        let mut jobs = vec![];
+        while let Some(job) = cursor.try_next().await? {
+            jobs.push(job);
+        }
+        Ok(jobs)
     }
 
     async fn dispatch_job_to_agent(
@@ -240,9 +209,9 @@ impl AgentManager {
         let manager_clone = manager.clone();
         spawn(async move {
             loop {
-                let mut manager_lock = manager_clone.lock().await;
+                let manager_lock = manager_clone.lock().await;
                 debug!("Checking for new agents in the database...");
-                if let Err(fetch_agents_error) = manager_lock.fetch_agents().await {
+                if let Err(fetch_agents_error) = manager_lock.fetch_database_agents().await {
                     error!("Error fetching agents: {}", fetch_agents_error);
                 }
                 info!(
@@ -265,7 +234,7 @@ impl AgentManager {
         spawn(async move {
             loop {
                 let mut manager_lock = manager_clone.lock().await;
-                manager_lock.check_connected().await;
+                manager_lock.ping_existing_agents().await;
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
                 sleep(Duration::from_secs(CONNECT_CHECK_INTERVAL_SECONDS)).await;
             }
@@ -276,7 +245,7 @@ impl AgentManager {
         spawn(async move {
             loop {
                 let mut manager_lock = manager_clone.lock().await;
-                manager_lock.check_unconnected().await;
+                manager_lock.check_for_unconnected_agents().await;
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
                 sleep(Duration::from_secs(UNCONNECT_CHECK_INTERVAL_SECONDS)).await;
             }
@@ -286,40 +255,19 @@ impl AgentManager {
         let manager_clone = manager.clone();
         spawn(async move {
             loop {
-                let mut manager_lock = manager_clone.lock().await;
-                let jobs_to_dispatch = match manager_lock.get_jobs_to_dispatch().await {
-                    Ok(jobs) => jobs,
-                    Err(e) => {
-                        error!("Error getting jobs to dispatch: {}", e);
-                        continue;
-                    }
-                };
-
-                if jobs_to_dispatch.is_empty() {
-                    debug!("No jobs to dispatch.");
-                } else {
-                    for job in jobs_to_dispatch.iter() {
-                        debug!("Dispatching job: {:?}", job);
-                        // Dispatch the job to the appropriate agent
-                    }
-                }
-                for job in jobs_to_dispatch.iter() {
-                    debug!("Dispatching job: {:?}", job);
-                    match manager_lock
-                        .dispatch_job_to_agent(job.clone(), "foo2".to_string())
-                        .await
-                    {
-                        Ok(_) => {
-                            debug!("Job dispatched successfully!");
-                        }
-                        Err(e) => {
-                            error!("Error dispatching job: {}", e);
-                        }
-                    }
-                    // Dispatch the job to the appropriate agent
-                }
+                let manager_lock = manager_clone.lock().await;
+                debug!("Checking for jobs to dispatch...");
+                let jobs_to_run = manager_lock.get_jobs_to_run().await.unwrap();
+                info!(
+                    "Jobs to run: {}",
+                    jobs_to_run
+                        .iter()
+                        .map(|job| job.name.clone())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
-                sleep(Duration::from_secs(5)).await;
+                sleep(Duration::from_secs(1)).await;
             }
         });
     }

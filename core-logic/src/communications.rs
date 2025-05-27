@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{env::args, net::SocketAddr};
 
 use rkyv::{Archive, Deserialize, Serialize, option::ArchivedOption, rancor::Error};
 use uuid::Uuid;
@@ -19,6 +19,7 @@ pub struct RegisterAgent {
 pub struct DispatchJob {
     pub job_name: String,
     pub command: String,
+    pub args: String,
     pub agent_name: Option<String>,
 }
 
@@ -46,14 +47,16 @@ impl From<&ArchivedMessage> for Message {
             }
             ArchivedMessage::DispatchJob(archived) => {
                 let job_name = archived.job_name.to_string();
-                let job_data = archived.command.to_string();
+                let job_command = archived.command.to_string();
+                let job_args = archived.args.to_string();
                 let agent_name = match &archived.agent_name {
                     ArchivedOption::None => None,
                     ArchivedOption::Some(name) => Some(name.to_string()),
                 };
                 Message::DispatchJob(DispatchJob {
                     job_name: job_name.to_string(),
-                    command: job_data,
+                    command: job_command,
+                    args: job_args.to_string(),
                     agent_name,
                 })
             }

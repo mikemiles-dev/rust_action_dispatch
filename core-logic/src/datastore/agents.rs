@@ -10,7 +10,7 @@ use std::error::Error;
 use crate::communications::RegisterAgent;
 use crate::datastore::Datastore;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct AgentV1 {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
@@ -23,9 +23,9 @@ pub struct AgentV1 {
 impl AgentV1 {
     pub async fn create_indicies(collection: &Collection<Document>) -> Result<(), Box<dyn Error>> {
         let index_doc = doc! { "hostname": 1, "port": 1 };
-        Datastore::create_indicies(collection, index_doc).await?;
+        Datastore::create_unique_index(collection, index_doc).await?;
         let index_doc = doc! { "name": 1, };
-        Datastore::create_indicies(collection, index_doc).await?;
+        Datastore::create_unique_index(collection, index_doc).await?;
 
         Ok(())
     }

@@ -40,7 +40,7 @@ impl CommandReceiver {
                 return;
             }
         };
-        let result = agents_collection.insert_one(bson_agent, None).await;
+        let result = agents_collection.insert_one(bson_agent).await;
         match result {
             Ok(_) => {
                 info!("Inserted agent: {:?}", agent);
