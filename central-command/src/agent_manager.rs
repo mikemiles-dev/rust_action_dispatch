@@ -1,4 +1,4 @@
-use bson::{Document, doc};
+use bson::{DateTime, Document, doc};
 use futures::stream::TryStreamExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
@@ -14,7 +14,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use core_logic::communications::{DispatchJob, Message};
-use core_logic::datastore::{Datastore, agents::AgentV1, jobs::JobV1};
+use core_logic::datastore::{
+    Datastore,
+    agents::AgentV1,
+    jobs::{JobV1, Status},
+};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct ConnectedAgent {
@@ -156,12 +160,35 @@ impl AgentManager {
         }
     }
 
+    /// Get jobs to run
+    /// This function retrieves jobs from the database that are ready to run (status 0 and next_run < current time)
+    /// It updates their status to 1 (running) and returns the jobs that are now running without agents.
     pub async fn get_jobs_to_run(&self) -> Result<Vec<JobV1>, Box<dyn std::error::Error>> {
+        let timestamp = DateTime::now().to_chrono().timestamp();
         let collection = self.datastore.get_collection::<JobV1>("jobs").await?;
-        let mut filter = Document::new();
-        //filter.insert("status", 0); // Assuming 0 is the status for jobs to run
-        //filter.insert("next_run", doc! { "$lte": bson::DateTime::now() });
-        let mut cursor = collection.find(filter).await?;
+        // Filter for jobs with status 0 and next_run < current time
+        let filter = doc! {
+            "$and": [
+                doc! { "status": Status::Pending }, // Jobs with status equal to 0
+                doc! { "next_run": { "$lt": timestamp } } // Jobs where next_run is LESS THAN current_utc_time
+            ]
+        };
+        let update = doc! {
+            "$set": {
+                "status": Status::Running
+            },
+        };
+        // Update the status of the jobs to 1 (running)
+        let _ = collection.update_many(filter, update).await?;
+        // Now fetch the jobs that are ready to run
+        let post_filter = doc! {
+            "$and": [
+                doc! { "status": Status::Running  }, // Jobs with status equal to 0
+                doc! { "agents_running": [] } // Jobs where next_run is LESS THAN current_utc_time
+            ]
+        };
+        // Fetch the jobs that are now running without agents
+        let mut cursor = collection.find(post_filter).await?;
         let mut jobs = vec![];
         while let Some(job) = cursor.try_next().await? {
             jobs.push(job);
@@ -257,7 +284,13 @@ impl AgentManager {
             loop {
                 let manager_lock = manager_clone.lock().await;
                 debug!("Checking for jobs to dispatch...");
-                let jobs_to_run = manager_lock.get_jobs_to_run().await.unwrap();
+                let jobs_to_run = match manager_lock.get_jobs_to_run().await {
+                    Ok(jobs) => jobs,
+                    Err(e) => {
+                        error!("Error fetching jobs: {}", e);
+                        continue; // Skip this iteration on error
+                    }
+                };
                 info!(
                     "Jobs to run: {}",
                     jobs_to_run
@@ -267,6 +300,7 @@ impl AgentManager {
                         .join(", ")
                 );
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
+                //sleep(Duration::from_millis(10)).await;
                 sleep(Duration::from_secs(1)).await;
             }
         });
