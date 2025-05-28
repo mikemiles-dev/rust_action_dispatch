@@ -179,7 +179,8 @@ impl AgentManager {
             "$and": [
                 { "status": Status::Pending }, // Jobs with status equal to 0
                 { "next_run": { "$lt": timestamp } },  // Jobs where next_run is LESS THAN current_utc_time
-                { "agents_running": [] } // Jobs that are not currently running with agents
+                { "agents_running": [] }, // Jobs that are not currently running with agents
+                { "agents_required": { "$in": self.connected_agents.keys().map(|a| a.name.clone()).collect::<Vec<_>>() } } // Check if any agents_to_run are in self.connected_agents
             ]
         };
         let update = doc! {
@@ -205,6 +206,10 @@ impl AgentManager {
         Ok(jobs)
     }
 
+    /// Add an agent to the running job
+    /// This function updates the job in the database to include the agent in the `agents_running` list
+    /// It checks if the agent is already in the list to avoid duplicates.
+    /// Returns `Ok(())` if the agent was added successfully, or an error if the update failed.
     async fn add_agent_to_running_job(
         datastore: Arc<Datastore>,
         job: &JobV1,
@@ -221,10 +226,13 @@ impl AgentManager {
         Ok(())
     }
 
+    /// Run a job
+    /// This function takes a job, filters connected agents based on the job's `agents_to_run`,
+    /// and sends a `DispatchJob` message to each agent. It also updates the job's `agents_running` list.
     async fn run_job(&mut self, job: &JobV1) -> Result<(), Box<dyn std::error::Error>> {
         let datastore = self.datastore.clone();
 
-        let agents_to_run: HashSet<String> = job.agents_to_run.iter().cloned().collect();
+        let agents_to_run: HashSet<String> = job.agents_required.iter().cloned().collect();
 
         let agent_streams: HashMap<ConnectedAgent, &mut TcpStream> = self
             .connected_agents

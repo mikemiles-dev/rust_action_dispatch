@@ -51,7 +51,7 @@ pub struct JobV1 {
     pub cwd: String,
     pub timeout: u32,
     pub retries: u32,
-    pub agents_to_run: Vec<String>,
+    pub agents_required: Vec<String>,
     pub agents_running: Vec<String>,
     pub agents_complete: Vec<String>,
 }
@@ -70,7 +70,7 @@ impl From<JobV1> for Document {
         doc.insert("cwd", job.cwd);
         doc.insert("timeout", job.timeout);
         doc.insert("retries", job.retries);
-        doc.insert("agents_to_run", job.agents_to_run);
+        doc.insert("agents_required", job.agents_required);
         doc.insert("agents_running", job.agents_running);
 
         doc
