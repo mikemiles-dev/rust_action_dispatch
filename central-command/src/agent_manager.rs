@@ -218,9 +218,9 @@ impl AgentManager {
 
         let agents_to_run: HashSet<String> = job.agents_to_run.iter().cloned().collect();
 
-        let mut agent_streams: HashMap<ConnectedAgent, &TcpStream> = self
+        let agent_streams: HashMap<ConnectedAgent, &mut TcpStream> = self
             .connected_agents
-            .iter()
+            .iter_mut()
             .filter_map(|(agent, stream)| {
                 if agents_to_run.contains(&agent.name) {
                     Some((agent.clone(), stream))
@@ -232,6 +232,23 @@ impl AgentManager {
 
         for (agent, stream) in agent_streams.into_iter() {
             Self::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
+            let dispatch_job = DispatchJob {
+                job_name: job.name.clone(),
+                command: job.command.clone(),
+                args: job.args.join(" "),
+                agent_name: Some(agent.name.clone()),
+            };
+            let message: Vec<u8> = match Message::DispatchJob(dispatch_job).try_into() {
+                Ok(msg) => msg,
+                Err(e) => {
+                    error!("Failed to serialize message: {}", e);
+                    return Err(Box::new(e));
+                }
+            };
+            if let Err(e) = stream.write_all(&message).await {
+                error!("Error writing to agent {}: {}", agent.address, e);
+                continue; // Skip to the next agent
+            }
         }
 
         // let (_, stream) = self

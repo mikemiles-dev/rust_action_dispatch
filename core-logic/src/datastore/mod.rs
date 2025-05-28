@@ -1,27 +1,17 @@
 pub mod agents;
 pub mod jobs;
 
-use futures::StreamExt;
-use futures::stream::TryStreamExt;
 use mongodb::{
     Client, Collection, IndexModel,
-    action::Watch,
     bson::Document,
     error::Error as MongoError,
-    options::{
-        ChangeStreamOptions, ClientOptions, FullDocumentBeforeChangeType, FullDocumentType,
-        IndexOptions,
-    },
+    options::{ClientOptions, IndexOptions},
 };
-use serde::de::DeserializeOwned;
-use tokio::spawn;
-use tokio::sync::mpsc::{Receiver, channel};
 
 use std::env;
 use std::error::Error;
-use std::sync::Arc;
 
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 use agents::AgentV1;
 use jobs::JobV1;
