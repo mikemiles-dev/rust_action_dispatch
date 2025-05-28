@@ -276,9 +276,10 @@ impl AgentManager {
 
     /// Check if connected agents are still reachable
     pub async fn start(self) {
-        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
+        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 5;
         const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
-        const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 1;
+        const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 5;
+        const JOB_DISPATCH_INTERVAL_SECONDS: u64 = 1;
 
         let manager = Arc::new(Mutex::new(self)); // Ownership of `self` is moved here
 
@@ -346,8 +347,7 @@ impl AgentManager {
                     let _ = manager_lock.run_job(job).await;
                 }
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
-                //sleep(Duration::from_millis(10)).await;
-                sleep(Duration::from_secs(1)).await;
+                sleep(Duration::from_secs(JOB_DISPATCH_INTERVAL_SECONDS)).await;
             }
         });
     }
