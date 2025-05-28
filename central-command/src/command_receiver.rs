@@ -64,8 +64,8 @@ impl CommandReceiver {
         let job: Option<Document> = jobs_collection.find_one(filter.clone()).await?;
 
         if let Some(job_doc) = job {
-            if let Some(agents_required) = job_doc.get_array("agents_required").ok() {
-                if let Some(agents_complete) = job_doc.get_array("agents_complete").ok() {
+            if let Ok(agents_required) = job_doc.get_array("agents_required") {
+                if let Ok(agents_complete) = job_doc.get_array("agents_complete") {
                     if agents_required.len() == agents_complete.len() {
                         info!("All agents have completed job {}", job_name);
 
