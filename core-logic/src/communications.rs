@@ -24,11 +24,17 @@ pub struct DispatchJob {
 }
 
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
+pub struct JobComplete {
+    pub job_name: String,
+    pub agent_name: String,
+}
+
+#[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
 pub enum Message {
     Ping,
     RegisterAgent(RegisterAgent),
     DispatchJob(DispatchJob),
-    JobComplete,
+    JobComplete(JobComplete), // Job Name
 }
 
 impl From<&ArchivedMessage> for Message {
@@ -60,7 +66,14 @@ impl From<&ArchivedMessage> for Message {
                     agent_name,
                 })
             }
-            ArchivedMessage::JobComplete => Message::JobComplete,
+            ArchivedMessage::JobComplete(archived) => {
+                let job_name = archived.job_name.to_string();
+                let agent_name = archived.agent_name.to_string();
+                Message::JobComplete(JobComplete {
+                    job_name,
+                    agent_name,
+                })
+            }
         }
     }
 }

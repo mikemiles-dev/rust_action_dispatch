@@ -7,8 +7,8 @@ use tokio::time::{Duration, sleep};
 
 use tracing::{error, info};
 
-use crate::CentralCommandWriter;
-use core_logic::communications::{DispatchJob, Message};
+use crate::{CentralCommandWriter, get_agent_name, get_agent_port};
+use core_logic::communications::{DispatchJob, JobComplete, Message};
 
 pub struct JobDispatcher {
     sender: Sender<String>,
@@ -22,10 +22,13 @@ impl JobDispatcher {
 
         spawn(async move {
             while let Some(job_name) = receiver.recv().await {
-                info!("Received job: {}", job_name);
+                //info!("Received job: {}", job_name);
                 // Here you would handle the job, e.g., by sending it to the central command
                 let mut writer = cloned_central_command_writer.lock().await;
-                let message = Message::JobComplete;
+                let message = Message::JobComplete(JobComplete {
+                    job_name: job_name.clone(),
+                    agent_name: get_agent_name(), // Replace with actual agent name if needed
+                });
                 writer.write(message).await;
                 //drop(cloned_central_command_writer)
             }

@@ -231,7 +231,6 @@ impl AgentManager {
             .collect();
 
         for (agent, stream) in agent_streams.into_iter() {
-            Self::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
             let dispatch_job = DispatchJob {
                 job_name: job.name.clone(),
                 command: job.command.clone(),
@@ -249,6 +248,7 @@ impl AgentManager {
                 error!("Error writing to agent {}: {}", agent.address, e);
                 continue; // Skip to the next agent
             }
+            Self::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
         }
 
         // let (_, stream) = self

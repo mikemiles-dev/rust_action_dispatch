@@ -25,7 +25,7 @@ fn get_agent_port() -> u16 {
     })
 }
 
-fn get_agent_name() -> String {
+pub fn get_agent_name() -> String {
     AGENT_NAME
         .get_or_init(|| env::var("AGENT_NAME").unwrap_or_else(|_| "default_agent".to_string()))
         .to_string()

@@ -53,6 +53,7 @@ pub struct JobV1 {
     pub retries: u32,
     pub agents_to_run: Vec<String>,
     pub agents_running: Vec<String>,
+    pub agents_complete: Vec<String>,
 }
 
 impl From<JobV1> for Document {

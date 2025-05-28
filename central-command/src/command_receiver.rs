@@ -1,5 +1,5 @@
-use bson::Document;
-use core_logic::communications::{Message, RegisterAgent};
+use bson::{Document, doc};
+use core_logic::communications::{JobComplete, Message, RegisterAgent};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
 use tokio::spawn;
@@ -51,6 +51,33 @@ impl CommandReceiver {
         }
     }
 
+    pub async fn add_agent_complete_to_job(
+        datastore_client: Arc<Datastore>,
+        job_name: &str,
+        agent_name: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let db = datastore_client.client.database("rust-action-dispatch");
+        let jobs_collection = db.collection::<Document>("jobs");
+
+        let filter = doc! { "name": job_name };
+        let update = doc! { "$addToSet": { "agents_complete": agent_name } };
+
+        match jobs_collection.update_one(filter, update).await {
+            Ok(result) => {
+                if result.modified_count > 0 {
+                    info!("Added agent {} to job {}", agent_name, job_name);
+                } else {
+                    warn!("No job found with name {}", job_name);
+                }
+            }
+            Err(e) => {
+                error!("Failed to update job {}: {}", job_name, e);
+            }
+        }
+
+        Ok(())
+    }
+
     #[allow(unreachable_code)]
     pub async fn listen(&mut self) -> Result<(), Box<dyn Error>> {
         loop {
@@ -85,8 +112,29 @@ impl CommandReceiver {
                                     Self::register_agent(datastore_client.clone(), register_agent)
                                         .await
                                 }
-                                Message::JobComplete => {
-                                    info!("Job complete received");
+                                Message::JobComplete(job_name) => {
+                                    let JobComplete {
+                                        job_name,
+                                        agent_name,
+                                    } = job_name.clone();
+                                    info!(
+                                        "Job {job_name} completed on {agent_name} from {}",
+                                        peer_addr
+                                    );
+                                    match Self::add_agent_complete_to_job(
+                                        datastore_client.clone(),
+                                        &job_name,
+                                        &agent_name,
+                                    )
+                                    .await
+                                    {
+                                        Ok(_) => {
+                                            info!("Added agent {} to job {}", agent_name, job_name);
+                                        }
+                                        Err(e) => {
+                                            error!("Failed to add agent to job: {}", e);
+                                        }
+                                    }
                                 }
                                 _ => (),
                             }
