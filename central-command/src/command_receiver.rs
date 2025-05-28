@@ -136,14 +136,11 @@ impl CommandReceiver {
             let datastore_client = self.datastore_client.clone();
             let (mut stream, peer_addr) = self.listener.accept().await?;
             spawn(async move {
-                loop {
-                    info!("Accepted connection from: {}", peer_addr);
-                    if let Err(e) =
-                        Self::process_messages(&mut stream, datastore_client.clone(), peer_addr)
-                            .await
-                    {
-                        error!("Error processing messages from {}: {}", peer_addr, e);
-                    }
+                info!("Accepted connection from: {}", peer_addr);
+                if let Err(e) =
+                    Self::process_messages(&mut stream, datastore_client.clone(), peer_addr).await
+                {
+                    error!("Error processing messages from {}: {}", peer_addr, e);
                 }
             });
         }
