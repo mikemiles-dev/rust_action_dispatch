@@ -31,7 +31,15 @@ impl TryFrom<AgentV1> for ConnectedAgent {
 
     fn try_from(agent: AgentV1) -> Result<Self, Self::Error> {
         let addr = format!("{}:{}", agent.hostname, agent.port);
-        let mut socket_addr = addr.to_socket_addrs()?;
+        let mut socket_addr = match addr.to_socket_addrs() {
+            Ok(addr) => addr,
+            Err(e) => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Failed to parse address: {}", e),
+                ));
+            }
+        };
         let socket_addr = socket_addr.next().ok_or(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             "Invalid address",
@@ -251,26 +259,6 @@ impl AgentManager {
             Self::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
         }
 
-        // let (_, stream) = self
-        //     .connected_agents
-        //     .iter_mut()
-        //     .find(|(agent, _)| agent.name == agent_name)
-        //     .ok_or_else(|| {
-        //         std::io::Error::new(
-        //             std::io::ErrorKind::NotFound,
-        //             format!("Agent {} not found", agent_name),
-        //         )
-        //     })?;
-
-        // let message: Vec<u8> = match Message::DispatchJob(job).try_into() {
-        //     Ok(msg) => msg,
-        //     Err(e) => {
-        //         error!("Failed to serialize message: {}", e);
-        //         return Err(Box::new(e));
-        //     }
-        // };
-
-        // stream.write_all(&message).await?;
         Ok(())
     }
 
