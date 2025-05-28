@@ -169,8 +169,9 @@ impl AgentManager {
         // Filter for jobs with status 0 and next_run < current time
         let filter = doc! {
             "$and": [
-                doc! { "status": Status::Pending }, // Jobs with status equal to 0
-                doc! { "next_run": { "$lt": timestamp } } // Jobs where next_run is LESS THAN current_utc_time
+                { "status": Status::Pending }, // Jobs with status equal to 0
+                { "next_run": { "$lt": timestamp } },  // Jobs where next_run is LESS THAN current_utc_time
+                { "agents_running": [] } // Jobs that are not currently running with agents
             ]
         };
         let update = doc! {
@@ -183,8 +184,8 @@ impl AgentManager {
         // Now fetch the jobs that are ready to run
         let post_filter = doc! {
             "$and": [
-                doc! { "status": Status::Running  }, // Jobs with status equal to 0
-                doc! { "agents_running": [] } // Jobs where next_run is LESS THAN current_utc_time
+                { "status": Status::Running  }, // Jobs with status equal to 1
+                { "agents_running": [] }
             ]
         };
         // Fetch the jobs that are now running without agents
@@ -196,31 +197,63 @@ impl AgentManager {
         Ok(jobs)
     }
 
-    async fn dispatch_job_to_agent(
-        &mut self,
-        job: DispatchJob,
-        agent_name: String,
+    async fn add_agent_to_running_job(
+        datastore: Arc<Datastore>,
+        job: &JobV1,
+        agent_name: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (_, stream) = self
+        if !job.agents_running.contains(&agent_name.to_string()) {
+            let mut agents_running = job.agents_running.clone();
+            agents_running.push(agent_name.to_string());
+            let collection = datastore.get_collection::<JobV1>("jobs").await?;
+            let filter = doc! { "_id": job.id };
+            let update = doc! { "$set": { "agents_running": agents_running } };
+            collection.update_one(filter, update).await?;
+        }
+        Ok(())
+    }
+
+    async fn run_job(&mut self, job: &JobV1) -> Result<(), Box<dyn std::error::Error>> {
+        let datastore = self.datastore.clone();
+
+        let agents_to_run: HashSet<String> = job.agents_to_run.iter().cloned().collect();
+
+        let mut agent_streams: HashMap<ConnectedAgent, &TcpStream> = self
             .connected_agents
-            .iter_mut()
-            .find(|(agent, _)| agent.name == agent_name)
-            .ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    format!("Agent {} not found", agent_name),
-                )
-            })?;
+            .iter()
+            .filter_map(|(agent, stream)| {
+                if agents_to_run.contains(&agent.name) {
+                    Some((agent.clone(), stream))
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-        let message: Vec<u8> = match Message::DispatchJob(job).try_into() {
-            Ok(msg) => msg,
-            Err(e) => {
-                error!("Failed to serialize message: {}", e);
-                return Err(Box::new(e));
-            }
-        };
+        for (agent, stream) in agent_streams.into_iter() {
+            Self::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
+        }
 
-        stream.write_all(&message).await?;
+        // let (_, stream) = self
+        //     .connected_agents
+        //     .iter_mut()
+        //     .find(|(agent, _)| agent.name == agent_name)
+        //     .ok_or_else(|| {
+        //         std::io::Error::new(
+        //             std::io::ErrorKind::NotFound,
+        //             format!("Agent {} not found", agent_name),
+        //         )
+        //     })?;
+
+        // let message: Vec<u8> = match Message::DispatchJob(job).try_into() {
+        //     Ok(msg) => msg,
+        //     Err(e) => {
+        //         error!("Failed to serialize message: {}", e);
+        //         return Err(Box::new(e));
+        //     }
+        // };
+
+        // stream.write_all(&message).await?;
         Ok(())
     }
 
@@ -282,7 +315,7 @@ impl AgentManager {
         let manager_clone = manager.clone();
         spawn(async move {
             loop {
-                let manager_lock = manager_clone.lock().await;
+                let mut manager_lock = manager_clone.lock().await;
                 debug!("Checking for jobs to dispatch...");
                 let jobs_to_run = match manager_lock.get_jobs_to_run().await {
                     Ok(jobs) => jobs,
@@ -291,14 +324,10 @@ impl AgentManager {
                         continue; // Skip this iteration on error
                     }
                 };
-                info!(
-                    "Jobs to run: {}",
-                    jobs_to_run
-                        .iter()
-                        .map(|job| job.name.clone())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                );
+                for job in jobs_to_run.iter() {
+                    info!("Running job: {:?}", job);
+                    let _ = manager_lock.run_job(job).await;
+                }
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
                 //sleep(Duration::from_millis(10)).await;
                 sleep(Duration::from_secs(1)).await;
