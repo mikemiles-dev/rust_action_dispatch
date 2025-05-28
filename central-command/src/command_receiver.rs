@@ -8,9 +8,8 @@ use tracing::{error, info, warn};
 use std::error::Error;
 use std::sync::Arc;
 
+use crate::SERVER_ADDRESS;
 use core_logic::datastore::{Datastore, agents::AgentV1};
-
-const SERVER_ADDRESS: &str = "0.0.0.0:8080";
 
 pub struct CommandReceiver {
     datastore_client: Arc<Datastore>,
@@ -18,15 +17,15 @@ pub struct CommandReceiver {
 }
 
 impl CommandReceiver {
-    pub async fn try_new(datastore_client: Arc<Datastore>) -> Result<Self, Box<dyn Error>> {
+    pub async fn new(datastore_client: Arc<Datastore>) -> Self {
         let listener = TcpListener::bind(SERVER_ADDRESS)
             .await
             .expect("Failed to bind to address");
 
-        Ok(CommandReceiver {
+        CommandReceiver {
             datastore_client,
             listener,
-        })
+        }
     }
 
     async fn register_agent(datastore_client: Arc<Datastore>, register_agent: RegisterAgent) {
@@ -78,74 +77,69 @@ impl CommandReceiver {
         Ok(())
     }
 
+    /// Processes incoming messages from the TCP stream.
+    /// /// This function reads messages from the stream, deserializes them into `Message` enum variants,
+    pub async fn process_messages(
+        stream: &mut tokio::net::TcpStream,
+        datastore_client: Arc<Datastore>,
+        peer_addr: std::net::SocketAddr,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut buffer = [0; 65536];
+        loop {
+            match stream.read(&mut buffer).await {
+                Ok(0) => {
+                    info!("Connection with {} closed by peer.", peer_addr);
+                    break; // Connection closed by the client
+                }
+                Ok(n) => {
+                    let received = buffer[..n].to_vec();
+                    let message: Message = received.try_into()?;
+
+                    match message {
+                        Message::Ping => {
+                            info!("Ping received from {}", peer_addr);
+                        }
+                        Message::RegisterAgent(register_agent) => {
+                            Self::register_agent(datastore_client.clone(), register_agent).await
+                        }
+                        Message::JobComplete(job_name) => {
+                            let JobComplete {
+                                job_name,
+                                agent_name,
+                            } = job_name.clone();
+                            info!(
+                                "Job {job_name} completed on {agent_name} from {}",
+                                peer_addr
+                            );
+                            Self::add_agent_complete_to_job(
+                                datastore_client.clone(),
+                                &job_name,
+                                &agent_name,
+                            )
+                            .await?;
+                        }
+                        _ => (),
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to read from connection {}: {}", peer_addr, e);
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
+
     #[allow(unreachable_code)]
     pub async fn listen(&mut self) -> Result<(), Box<dyn Error>> {
         loop {
             let datastore_client = self.datastore_client.clone();
             let (mut stream, peer_addr) = self.listener.accept().await?;
             info!("Accepted connection from: {}", peer_addr);
-
-            // Spawn a new task to handle the connection
-            spawn(async move {
-                let mut buffer = [0; 65536];
-                loop {
-                    match stream.read(&mut buffer).await {
-                        Ok(0) => {
-                            info!("Connection with {} closed by peer.", peer_addr);
-                            break; // Connection closed by the client
-                        }
-                        Ok(n) => {
-                            let received = buffer[..n].to_vec();
-                            let message: Message = match received.try_into() {
-                                Ok(msg) => msg,
-                                Err(e) => {
-                                    error!("Failed to deserialize message: {}", e);
-                                    continue;
-                                }
-                            };
-
-                            match message {
-                                Message::Ping => {
-                                    info!("Ping received from {}", peer_addr);
-                                }
-                                Message::RegisterAgent(register_agent) => {
-                                    Self::register_agent(datastore_client.clone(), register_agent)
-                                        .await
-                                }
-                                Message::JobComplete(job_name) => {
-                                    let JobComplete {
-                                        job_name,
-                                        agent_name,
-                                    } = job_name.clone();
-                                    info!(
-                                        "Job {job_name} completed on {agent_name} from {}",
-                                        peer_addr
-                                    );
-                                    match Self::add_agent_complete_to_job(
-                                        datastore_client.clone(),
-                                        &job_name,
-                                        &agent_name,
-                                    )
-                                    .await
-                                    {
-                                        Ok(_) => {
-                                            info!("Added agent {} to job {}", agent_name, job_name);
-                                        }
-                                        Err(e) => {
-                                            error!("Failed to add agent to job: {}", e);
-                                        }
-                                    }
-                                }
-                                _ => (),
-                            }
-                        }
-                        Err(e) => {
-                            error!("Failed to read from connection {}: {}", peer_addr, e);
-                            break;
-                        }
-                    }
-                }
-            });
+            if let Err(e) = Self::process_messages(&mut stream, datastore_client, peer_addr).await {
+                error!("Error processing messages from {}: {}", peer_addr, e);
+            }
+            spawn(async move {});
         }
 
         Ok(())

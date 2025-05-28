@@ -1,15 +1,26 @@
 mod agent_manager;
 mod command_receiver;
 
-use std::sync::Arc;
 use tokio::spawn;
 use tracing::info;
 
 use std::error::Error;
+use std::sync::Arc;
 
 use agent_manager::AgentManager;
 use command_receiver::CommandReceiver;
 use core_logic::datastore::Datastore;
+
+pub const SERVER_ADDRESS: &str = "0.0.0.0:8080";
+pub const VERSION: &str = "0.1.0";
+
+fn display_central_command_info() {
+    info!("-------------------------------------------------");
+    info!("\tRust Action Dispatch Central Command");
+    info!("-------------------------------------------------");
+    info!("\tVersion: {} Hosted at {}", VERSION, SERVER_ADDRESS);
+    info!("-------------------------------------------------");
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -31,9 +42,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let cloned_datastore = datastore.clone();
 
     spawn(async move {
-        let mut command_receiver = CommandReceiver::try_new(cloned_datastore)
-            .await
-            .expect("Failed to create connection manager");
+        let mut command_receiver = CommandReceiver::new(cloned_datastore).await;
         command_receiver
             .listen()
             .await
@@ -49,7 +58,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         agent_manager.start().await;
     });
 
-    info!("Central Command started and listening for connections...");
+    display_central_command_info();
 
     // Keep the main task alive
     tokio::signal::ctrl_c().await?;

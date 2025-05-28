@@ -7,7 +7,7 @@ use tokio::time::{Duration, sleep};
 
 use tracing::{error, info};
 
-use crate::{CentralCommandWriter, get_agent_name, get_agent_port};
+use crate::{CentralCommandWriter, get_agent_name};
 use core_logic::communications::{DispatchJob, JobComplete, Message};
 
 pub struct JobDispatcher {

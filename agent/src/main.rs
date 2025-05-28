@@ -11,7 +11,8 @@ use std::{env, sync::OnceLock};
 
 use core_logic::communications::{Message, RegisterAgent};
 
-const SERVER_ADDRESS: &str = "127.0.0.1:8080";
+pub const SERVER_ADDRESS: &str = "127.0.0.1:8080";
+pub const VERSION: &str = "0.1.0";
 
 static AGENT_PORT: OnceLock<u16> = OnceLock::new();
 static AGENT_NAME: OnceLock<String> = OnceLock::new();
@@ -31,6 +32,18 @@ pub fn get_agent_name() -> String {
         .to_string()
 }
 
+fn display_agent_info() {
+    info!("-------------------------------------------------");
+    info!("\tRust Action Dispatch Agent");
+    info!("-------------------------------------------------");
+    info!(
+        "\tAgent Name: {} Port: {}",
+        get_agent_name(),
+        get_agent_port()
+    );
+    info!("-------------------------------------------------");
+}
+
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let subscriber = tracing_subscriber::fmt()
@@ -39,6 +52,8 @@ async fn main() -> io::Result<()> {
 
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global default subscriber");
+
+    display_agent_info();
 
     let mut connection_manager = ConnectionManager::try_new()
         .await
