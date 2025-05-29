@@ -272,10 +272,10 @@ impl AgentManager {
 
     /// Check if connected agents are still reachable
     pub async fn start(self) {
-        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 5;
-        const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 1;
-        const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 5;
-        const JOB_DISPATCH_INTERVAL_SECONDS: u64 = 1;
+        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 1; // Interval to check for new agents
+        const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 1; // Interval to check for unconnected agents
+        const JOB_DISPATCH_INTERVAL_SECONDS: u64 = 1; // Interval to check for jobs to dispatch
+        const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 15; // Interval to check for new agents in the database
 
         let manager = Arc::new(Mutex::new(self)); // Ownership of `self` is moved here
 

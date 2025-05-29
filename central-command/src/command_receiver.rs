@@ -72,7 +72,7 @@ impl CommandReceiver {
                         let update = doc! {
                             "$set": {
                                 "status": Status::Completed,
-                                "agents_running": []
+                                "agents_running": bson::Array::new()
                             }
                         };
                         jobs_collection.update_one(filter, update).await?;
