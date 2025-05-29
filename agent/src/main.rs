@@ -172,15 +172,15 @@ impl CentralCommandWriter {
             }
         };
 
-        if let Err(e) = self.stream.write_all(&serialized).await {
-            error!("Error writing to central command: {}", e);
-            if let Err(e) = self.reconnect_to_central_command().await {
-                error!("Failed to reconnect to central command: {}", e);
-            }
-        }
-        let mut reply = [0; 2];
-        // Block until we get exactly "OK" from the central command
+        // Write until we get exactly "OK" from the central command
         loop {
+            if let Err(e) = self.stream.write_all(&serialized).await {
+                error!("Error writing to central command: {}", e);
+                if let Err(e) = self.reconnect_to_central_command().await {
+                    error!("Failed to reconnect to central command: {}", e);
+                }
+            }
+            let mut reply = [0; 2];
             if let Err(e) = self.stream.read_exact(&mut reply).await {
                 error!("Error reading reply from central command: {}", e);
                 if let Err(e) = self.reconnect_to_central_command().await {
