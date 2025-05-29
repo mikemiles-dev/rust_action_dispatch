@@ -33,7 +33,7 @@
 /// let mut receiver = CommandReceiver::new(datastore).await;
 /// receiver.listen().await?;
 /// ```
-use bson::{Document, doc};
+use bson::{Array, Document, doc};
 use core_logic::communications::{JobComplete, Message, RegisterAgent};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
@@ -108,8 +108,8 @@ impl CommandReceiver {
                         let update = doc! {
                             "$set": {
                                 "status": Status::Completed,
-                                "agents_running": bson::Array::new(),
-                                "agents_complete": bson::Array::new(),
+                                "agents_running": Array::new(),
+                                "agents_complete": Array::new(),
                             }
                         };
                         jobs_collection.update_one(filter, update).await?;
@@ -178,6 +178,8 @@ impl CommandReceiver {
                 Ok(n) => {
                     let received = buffer[..n].to_vec();
                     let message: Message = received.try_into()?;
+
+                    // Todo add validation (length check?) for message
 
                     // Send an OK reply to the agent after job complete
                     if let Err(e) = stream.write_all(b"OK").await {

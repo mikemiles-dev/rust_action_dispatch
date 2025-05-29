@@ -179,16 +179,25 @@ impl CentralCommandWriter {
             }
         }
         let mut reply = [0; 2];
-        if let Err(e) = self.stream.read_exact(&mut reply).await {
-            error!("Error reading reply from central command: {}", e);
-            if let Err(e) = self.reconnect_to_central_command().await {
-                error!("Failed to reconnect to central command: {}", e);
+        // Block until we get exactly "OK" from the central command
+        loop {
+            if let Err(e) = self.stream.read_exact(&mut reply).await {
+                error!("Error reading reply from central command: {}", e);
+                if let Err(e) = self.reconnect_to_central_command().await {
+                    error!("Failed to reconnect to central command: {}", e);
+                }
+                continue;
+            }
+            if &reply == b"OK" {
+                break;
+            } else {
+                error!("Unexpected reply from central command: {:?}", reply);
+                // Optionally, you can continue to wait or break here depending on your protocol
+                // For now, break to avoid infinite loop on unexpected reply
+                break;
             }
         }
-        if &reply != b"OK" {
-            error!("Unexpected reply from central command: {:?}", reply);
-            return;
-        }
+
         debug!("Sent message to central command: {:?}", message);
     }
 }
