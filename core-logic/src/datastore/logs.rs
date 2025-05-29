@@ -21,12 +21,10 @@ pub struct LogsV1 {
 }
 
 impl LogsV1 {
-    pub async fn insert_entry(
-        &self,
-        collection: Collection<Document>,
-    ) -> Result<(), Box<dyn Error>> {
+    pub async fn insert_entry(&self, db: &mongodb::Database) -> Result<(), Box<dyn Error>> {
+        let logs_collection = db.collection::<Document>("logs");
         let doc = bson::to_document(self)?;
-        collection.insert_one(doc).await?;
+        logs_collection.insert_one(doc).await?;
         Ok(())
     }
 }
