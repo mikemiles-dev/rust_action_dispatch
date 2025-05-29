@@ -1,9 +1,8 @@
 [workspace]
 resolver = "2"
-members = [ "agent", "central-command","core-logic"]
+members = [ "agent", "central-command","core-logic", "webui"]
 
 [workspace.package]
-name = "Rust Action Dispatch"
 description = "Rust Action Dispatch"
 edition = "2024"
 version = "0.1.0"
