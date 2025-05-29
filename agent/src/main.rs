@@ -11,7 +11,7 @@ use std::{env, sync::OnceLock};
 
 use core_logic::communications::{Message, RegisterAgent};
 
-pub const SERVER_ADDRESS: &str = "127.0.0.1:8080";
+pub const CENTRAL_COMMAND_ADDRESS: &str = "127.0.0.1:8080";
 pub const VERSION: &str = "0.1.0";
 
 static AGENT_PORT: OnceLock<u16> = OnceLock::new();
@@ -88,7 +88,7 @@ impl CentralCommandWriter {
         let mut attempts = 0;
         loop {
             info!("Attempting to connect to central command...");
-            match TcpStream::connect(SERVER_ADDRESS).await {
+            match TcpStream::connect(CENTRAL_COMMAND_ADDRESS).await {
                 Ok(stream) => {
                     info!("Reconnected to central command.");
                     return Ok(stream);

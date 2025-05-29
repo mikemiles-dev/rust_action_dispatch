@@ -3,7 +3,6 @@ use tokio::process::Command;
 use tokio::spawn;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{self, Sender};
-use tokio::time::{Duration, sleep};
 
 use tracing::{error, info};
 
@@ -52,36 +51,21 @@ impl JobDispatcher {
             command.args(args.split_whitespace());
 
             let output = match command.output().await {
-                Ok(output) => output,
+                Ok(output) => Some(output),
                 Err(e) => {
                     error!("Failed to execute command: {}", e);
-                    return;
+                    None
                 }
             };
 
-            // 4. Process the output.
-            // if output.status.success() {
-            //     if let Err(e) = io::stdout().write_all(&output.stdout) {
-            //         error!("Failed to write to stdout: {}", e);
-            //     }
-            //     error!("Command successful.");
+            // Get the numerical return code (if available)
+            // if let Some(code) = output.status.code() {
+            //     println!("Return Code: {}", code);
             // } else {
-            //     if let Err(e) = io::stderr().write_all(&output.stderr) {
-            //         error!("Failed to write to stderr: {}", e);
-            //     }
-            //     error!("Command failed with status: {}", output.status);
+            //     println!("Command terminated by signal (no return code).");
             // }
 
-            // Get the numerical return code (if available)
-            if let Some(code) = output.status.code() {
-                println!("Return Code: {}", code);
-            } else {
-                println!("Command terminated by signal (no return code).");
-            }
-
             info!("Output is: {:?}", output);
-
-            sleep(Duration::from_secs(5)).await;
             info!("Job {} completed", job_name);
 
             if let Err(e) = sender.send(job_name).await {
