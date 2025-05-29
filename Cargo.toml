@@ -20,6 +20,7 @@ hostname = { version = "0.4.1" }
 log = { version = "0.4.27"  }
 mongodb = { version = "3.2.0" }
 serde = { version = "1.0.130", features = ["derive"] }
+rocket = { version = "0.5.1" }
 tokio = { version = "1.45", features = ["full"] }
 tracing = { version = "0.1.41", features = ["log"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
