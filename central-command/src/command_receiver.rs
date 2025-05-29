@@ -3,7 +3,7 @@ use core_logic::communications::{JobComplete, Message, RegisterAgent};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
 use tokio::spawn;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 use std::error::Error;
 use std::sync::Arc;
@@ -68,7 +68,7 @@ impl CommandReceiver {
             if let Ok(agents_required) = job_doc.get_array("agents_required") {
                 if let Ok(agents_complete) = job_doc.get_array("agents_complete") {
                     if agents_required.len() == agents_complete.len() {
-                        info!("All agents have completed job {}", job_name);
+                        info!("Completed job {}", job_name);
 
                         let update = doc! {
                             "$set": {
@@ -83,7 +83,7 @@ impl CommandReceiver {
                 }
             }
         }
-        info!("Job {} is not yet complete.", job_name);
+        debug!("Job {} is not yet complete.", job_name);
         Ok(false)
     }
 
@@ -150,7 +150,7 @@ impl CommandReceiver {
 
                     match message {
                         Message::Ping => {
-                            info!("Ping received from {}", peer_addr);
+                            debug!("Ping received from {}", peer_addr);
                         }
                         Message::RegisterAgent(register_agent) => {
                             Self::register_agent(datastore_client.clone(), register_agent).await
@@ -160,10 +160,7 @@ impl CommandReceiver {
                                 job_name,
                                 agent_name,
                             } = job_name.clone();
-                            info!(
-                                "Job {job_name} completed on {agent_name} from {}",
-                                peer_addr
-                            );
+                            info!("{agent_name} on {} Completed {job_name}", peer_addr);
                             Self::mark_agent_job_complete(
                                 datastore_client.clone(),
                                 &job_name,
