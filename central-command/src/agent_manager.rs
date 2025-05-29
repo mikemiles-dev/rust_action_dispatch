@@ -38,6 +38,7 @@
 /// Most methods return `Result` types and log errors using the `tracing` crate.
 /// Errors are handled gracefully to ensure the manager continues running.
 use bson::{DateTime, Document, doc};
+use core_logic::datastore;
 use futures::stream::TryStreamExt;
 use tokio::net::TcpStream;
 use tokio::spawn;
@@ -179,19 +180,41 @@ impl AgentManager {
     async fn ping_existing_agents(&mut self) {
         let mut agents_to_remove = Vec::new();
 
+        let datastore = self.datastore.clone();
+
         for (agent, stream) in self.connected_agents.iter_mut() {
             debug!("Pinging agent {}!", agent.address);
 
             let message = Message::Ping;
-            message.tcp_write(stream).await.unwrap_or_else(|e| {
-                error!("Failed to send ping to agent {}: {}", agent.address, e);
-                agents_to_remove.push(agent.clone());
-            });
+            match message.tcp_write(stream).await {
+                Ok(_) => {
+                    debug!("Ping sent to agent {} successfully!", agent.address);
+                    // Update the agent's last ping in the database
+                    if let Err(e) = Self::update_agent_last_ping(datastore.clone(), agent).await {
+                        error!("Failed to update last ping for agent {}: {}", agent.name, e);
+                    }
+                }
+                Err(e) => {
+                    error!("Error writing to agent {}: {}", agent.address, e);
+                    agents_to_remove.push(agent.clone()); // Mark agent for removal
+                }
+            }
         }
 
         for agent in agents_to_remove {
             self.connected_agents.remove(&agent);
         }
+    }
+
+    async fn update_agent_last_ping(
+        datastore: Arc<Datastore>,
+        agent: &ConnectedAgent,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let collection = datastore.get_collection::<AgentV1>("agents").await?;
+        let filter = doc! { "name": &agent.name };
+        let update = doc! { "$set": { "last_ping": DateTime::now() } };
+        collection.update_one(filter, update).await?;
+        Ok(())
     }
 
     /// Run a job

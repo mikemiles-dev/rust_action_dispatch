@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use mongodb::{
     Collection,
-    bson::{Document, doc},
+    bson::{DateTime, Document, doc},
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +16,7 @@ pub struct AgentV1 {
     pub id: Option<ObjectId>,
     pub name: String,
     pub hostname: String,
+    pub last_ping: DateTime,
     pub port: u16,
     pub version: u32,
 }
@@ -47,6 +48,7 @@ impl From<RegisterAgent> for AgentV1 {
             id: None,
             name: register_agent.name,
             hostname: register_agent.hostname,
+            last_ping: DateTime::from_millis(0), // Default to 0, will be updated on next ping
             port: register_agent.port,
             version: 1,
         }
