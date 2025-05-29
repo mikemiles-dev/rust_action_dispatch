@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 use crate::SERVER_ADDRESS;
 use core_logic::datastore::{Datastore, agents::AgentV1, jobs::Status};
+use tokio::io::AsyncWriteExt;
 
 pub struct CommandReceiver {
     datastore_client: Arc<Datastore>,
@@ -103,7 +104,7 @@ impl CommandReceiver {
         match jobs_collection.update_one(filter, update).await {
             Ok(result) => {
                 if result.modified_count > 0 {
-                    info!("Added agent {} to job {}", agent_name, job_name);
+                    info!("Agent {} finished to job {}", agent_name, job_name);
                 } else {
                     warn!("No job found with name {}", job_name);
                 }
@@ -113,7 +114,8 @@ impl CommandReceiver {
             }
         }
 
-        Self::check_job_if_all_agents_complete(datastore_client, job_name).await?;
+        drop(db);
+        Self::check_job_if_all_agents_complete(datastore_client.clone(), job_name).await?;
 
         Ok(())
     }
@@ -140,6 +142,11 @@ impl CommandReceiver {
                 Ok(n) => {
                     let received = buffer[..n].to_vec();
                     let message: Message = received.try_into()?;
+
+                    // Send an OK reply to the agent after job complete
+                    if let Err(e) = stream.write_all(b"OK").await {
+                        error!("Failed to send OK reply to {}: {}", peer_addr, e);
+                    }
 
                     match message {
                         Message::Ping => {
@@ -188,7 +195,7 @@ impl CommandReceiver {
             spawn(async move {
                 info!("Accepted connection from: {}", peer_addr);
                 if let Err(e) =
-                    Self::process_messages(&mut stream, datastore_client.clone(), peer_addr).await
+                    Self::process_messages(&mut stream, datastore_client, peer_addr).await
                 {
                     error!("Error processing messages from {}: {}", peer_addr, e);
                 }

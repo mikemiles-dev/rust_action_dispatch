@@ -17,19 +17,17 @@ impl JobDispatcher {
     pub fn new(central_command_writer: Arc<Mutex<CentralCommandWriter>>) -> Self {
         let (sender, mut receiver) = mpsc::channel::<String>(100);
 
-        let cloned_central_command_writer = central_command_writer.clone();
-
         spawn(async move {
             while let Some(job_name) = receiver.recv().await {
                 //info!("Received job: {}", job_name);
                 // Here you would handle the job, e.g., by sending it to the central command
-                let mut writer = cloned_central_command_writer.lock().await;
                 let message = Message::JobComplete(JobComplete {
                     job_name: job_name.clone(),
                     agent_name: get_agent_name(), // Replace with actual agent name if needed
                 });
+                let mut writer = central_command_writer.lock().await;
                 writer.write(message).await;
-                //drop(cloned_central_command_writer)
+                drop(writer); // Explicitly drop the lock to release it
             }
         });
 
