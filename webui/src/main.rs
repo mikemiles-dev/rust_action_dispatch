@@ -37,8 +37,15 @@ pub fn hello(name: &str) -> Template {
 }
 
 #[get("/")]
-pub fn index() -> Redirect {
-    Redirect::to(uri!("/", hello(name = "Your Name")))
+pub fn index() -> Template {
+    Template::render(
+        "index",
+        context! {
+            title: "Hello",
+            name: Some("blah"),
+            items: vec!["One", "Two", "Three"],
+        },
+    )
 }
 
 fn not_found_handler<'r>(_: Status, req: &'r Request) -> catcher::BoxFuture<'r> {
