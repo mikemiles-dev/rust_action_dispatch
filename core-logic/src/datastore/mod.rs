@@ -27,6 +27,7 @@
 //! - Uses the `tracing` crate for logging connection and configuration information.
 pub mod agents;
 pub mod jobs;
+pub mod logs;
 
 use mongodb::{
     Client, Collection, IndexModel,

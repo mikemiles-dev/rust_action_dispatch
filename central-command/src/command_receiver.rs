@@ -128,14 +128,19 @@ impl CommandReceiver {
     /// adding the agent's name to the `agents_complete` array for the specified job.
     pub async fn mark_agent_job_complete(
         datastore_client: Arc<Datastore>,
-        job_name: &str,
-        agent_name: &str,
+        job_complete: JobComplete,
+        peer_addr: std::net::SocketAddr,
     ) -> Result<(), Box<dyn Error>> {
         let db = datastore_client.client.database("rust-action-dispatch");
         let jobs_collection = db.collection::<Document>("jobs");
 
-        let filter = doc! { "name": job_name };
-        let update = doc! { "$addToSet": { "agents_complete": agent_name } };
+        let agent_name = job_complete.agent_name.clone();
+        let job_name = job_complete.job_name.clone();
+
+        let filter = doc! { "name": &job_name };
+        let update = doc! { "$addToSet": { "agents_complete": &agent_name } };
+
+        info!("{agent_name} on {} Completed {job_name}", peer_addr);
 
         match jobs_collection.update_one(filter, update).await {
             Ok(result) => {
@@ -151,7 +156,7 @@ impl CommandReceiver {
         }
 
         drop(db);
-        Self::check_job_if_all_agents_complete(datastore_client.clone(), job_name).await?;
+        Self::check_job_if_all_agents_complete(datastore_client.clone(), &job_name).await?;
 
         Ok(())
     }
@@ -193,16 +198,11 @@ impl CommandReceiver {
                         Message::RegisterAgent(register_agent) => {
                             Self::register_agent(datastore_client.clone(), register_agent).await
                         }
-                        Message::JobComplete(job_name) => {
-                            let JobComplete {
-                                job_name,
-                                agent_name,
-                            } = job_name.clone();
-                            info!("{agent_name} on {} Completed {job_name}", peer_addr);
+                        Message::JobComplete(job_complete) => {
                             Self::mark_agent_job_complete(
                                 datastore_client.clone(),
-                                &job_name,
-                                &agent_name,
+                                job_complete,
+                                peer_addr,
                             )
                             .await?;
                         }

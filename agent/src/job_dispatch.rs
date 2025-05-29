@@ -19,6 +19,7 @@
 /// - The actual command execution is performed using `tokio::process::Command`.
 /// - Job completion is notified via an mpsc channel and handled in a background task.
 /// - Logging is performed using the `tracing` crate.
+use bson::DateTime;
 use std::sync::Arc;
 use tokio::process::Command;
 use tokio::spawn;
@@ -31,20 +32,23 @@ use crate::{CentralCommandWriter, get_agent_name};
 use core_logic::communications::{DispatchJob, JobComplete, Message};
 
 pub struct JobDispatcher {
-    sender: Sender<String>,
+    sender: Sender<JobComplete>,
 }
 
 impl JobDispatcher {
     pub fn new(central_command_writer: Arc<Mutex<CentralCommandWriter>>) -> Self {
-        let (sender, mut receiver) = mpsc::channel::<String>(100);
+        let (sender, mut receiver) = mpsc::channel::<JobComplete>(100);
 
         spawn(async move {
-            while let Some(job_name) = receiver.recv().await {
+            while let Some(job_info) = receiver.recv().await {
                 //info!("Received job: {}", job_name);
                 // Here you would handle the job, e.g., by sending it to the central command
                 let message = Message::JobComplete(JobComplete {
-                    job_name: job_name.clone(),
-                    agent_name: get_agent_name(), // Replace with actual agent name if needed
+                    started_at: job_info.started_at,
+                    completed_at: job_info.completed_at,
+                    job_name: job_info.job_name.clone(),
+                    agent_name: get_agent_name(),
+                    return_code: job_info.return_code,
                 });
                 let mut writer = central_command_writer.lock().await;
                 writer.write(message).await;
@@ -60,12 +64,14 @@ impl JobDispatcher {
         let sender = self.sender.clone();
         spawn(async move {
             let job_name = job.job_name.clone();
-            let command = job.command.clone();
+            let command_name = job.command.clone();
             let args = job.args.clone();
             // Here you would run the job, e.g., by executing a command
-            info!("Spawning job: {} with command: {}", job_name, command);
+            info!("Spawning job: {} with command: {}", job_name, command_name);
 
-            let mut command = Command::new(command);
+            let start_time = DateTime::now();
+
+            let mut command = Command::new(command_name.clone());
 
             command.args(args.split_whitespace());
 
@@ -77,17 +83,22 @@ impl JobDispatcher {
                 }
             };
 
-            // Get the numerical return code (if available)
-            // if let Some(code) = output.status.code() {
-            //     println!("Return Code: {}", code);
-            // } else {
-            //     println!("Command terminated by signal (no return code).");
-            // }
+            let return_code = output.as_ref().and_then(|o| o.status.code()).unwrap_or(-1);
 
             info!("Output is: {:?}", output);
             info!("Job {} completed", job_name);
 
-            if let Err(e) = sender.send(job_name).await {
+            let end_time = DateTime::now();
+
+            let job_complete = JobComplete {
+                started_at: start_time.timestamp_millis(),
+                completed_at: end_time.timestamp_millis(),
+                job_name: job_name.clone(),
+                agent_name: get_agent_name(),
+                return_code,
+            };
+
+            if let Err(e) = sender.send(job_complete).await {
                 error!("Failed to send job name: {}", e);
             }
         });
