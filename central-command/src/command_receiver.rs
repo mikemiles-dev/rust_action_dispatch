@@ -34,7 +34,10 @@
 /// receiver.listen().await?;
 /// ```
 use bson::{Array, Document, doc};
-use core_logic::communications::{JobComplete, Message, RegisterAgent};
+use core_logic::{
+    communications::{JobComplete, Message, RegisterAgent},
+    datastore::logs::LogsV1,
+};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
 use tokio::spawn;
@@ -89,7 +92,7 @@ impl CommandReceiver {
         }
     }
 
-    pub async fn check_job_if_all_agents_complete(
+    pub async fn check_job_completion(
         datastore_client: Arc<Datastore>,
         job_name: &str,
     ) -> Result<bool, Box<dyn Error>> {
@@ -126,7 +129,7 @@ impl CommandReceiver {
     /// Adds an agent to the `agents_complete` list of a job in the database.
     /// This function updates the `jobs` collection in the MongoDB database,
     /// adding the agent's name to the `agents_complete` array for the specified job.
-    pub async fn mark_agent_job_complete(
+    pub async fn complete_agent_run(
         datastore_client: Arc<Datastore>,
         job_complete: JobComplete,
         peer_addr: std::net::SocketAddr,
@@ -155,8 +158,13 @@ impl CommandReceiver {
             }
         }
 
+        let log: LogsV1 = job_complete.into();
+
+        let logs_collection = db.collection::<Document>("logs");
+        log.insert_entry(logs_collection).await?;
+
         drop(db);
-        Self::check_job_if_all_agents_complete(datastore_client.clone(), &job_name).await?;
+        Self::check_job_completion(datastore_client.clone(), &job_name).await?;
 
         Ok(())
     }
@@ -199,7 +207,7 @@ impl CommandReceiver {
                             Self::register_agent(datastore_client.clone(), register_agent).await
                         }
                         Message::JobComplete(job_complete) => {
-                            Self::mark_agent_job_complete(
+                            Self::complete_agent_run(
                                 datastore_client.clone(),
                                 job_complete,
                                 peer_addr,
