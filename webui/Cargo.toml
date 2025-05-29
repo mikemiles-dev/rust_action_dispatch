@@ -9,4 +9,5 @@ readme.workspace = true
 repository.workspace = true
 
 [dependencies]
+rocket_dyn_templates.workspace = true
 rocket.workspace = true

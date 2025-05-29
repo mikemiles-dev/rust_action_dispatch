@@ -15,6 +15,7 @@ repository = "https://github.com/mikemiles-dev/rust_action_dispatch/"
 bson = { version = "2", features = ["chrono-0_4"] } # Needed for using chrono datetime in doc
 core-logic = { path = "core-logic" }
 chrono = { version = "0.4.23", features = ["serde"] }
+rocket_dyn_templates = { version = "0.2.0", features = ["tera", "handlebars", "minijinja"] }
 futures = { version = "0.3"}
 hostname = { version = "0.4.1" }
 log = { version = "0.4.27"  }

@@ -4,16 +4,41 @@ use rocket::http::{
     Status,
 };
 use rocket::outcome::{IntoOutcome, try_outcome};
+use rocket::response::Redirect;
 use rocket::response::{Responder, status::Custom};
+use rocket::routes;
 use rocket::tokio::fs::File;
 use rocket::{Catcher, Request, Route, catcher, route};
+use rocket::{get, uri};
+
+use rocket_dyn_templates::{
+    Template, context,
+    minijinja::{self, Environment},
+};
 
 fn forward<'r>(_req: &'r Request, data: Data<'r>) -> route::BoxFuture<'r> {
     Box::pin(async move { route::Outcome::forward(data, Status::NotFound) })
 }
 
-fn hi<'r>(req: &'r Request, _: Data<'r>) -> route::BoxFuture<'r> {
-    route::Outcome::from(req, "Hello!").pin()
+// fn hi<'r>(req: &'r Request, _: Data<'r>) -> route::BoxFuture<'r> {
+//     route::Outcome::from(req, "Hello!").pin()
+// }
+
+#[get("/hello/<name>")]
+pub fn hello(name: &str) -> Template {
+    Template::render(
+        "/index",
+        context! {
+            title: "Hello",
+            name: Some(name),
+            items: vec!["One", "Two", "Three"],
+        },
+    )
+}
+
+#[get("/")]
+pub fn index() -> Redirect {
+    Redirect::to(uri!("/", hello(name = "Your Name")))
 }
 
 fn not_found_handler<'r>(_: Status, req: &'r Request) -> catcher::BoxFuture<'r> {
@@ -21,11 +46,24 @@ fn not_found_handler<'r>(_: Status, req: &'r Request) -> catcher::BoxFuture<'r> 
     Box::pin(async move { responder.respond_to(req) })
 }
 
+pub fn customize(env: &mut Environment) {
+    env.add_template(
+        "minijinja/about.html",
+        r#"
+        {% extends "minijinja/layout" %}
+
+        {% block page %}
+            <section id="about">
+                <h1>About - Here's another page!</h1>
+            </section>
+        {% endblock %}
+    "#,
+    )
+    .expect("valid Jinja2 template");
+}
+
 #[rocket::launch]
 fn rocket() -> _ {
-    let always_forward = Route::ranked(1, Get, "/", forward);
-    let hello = Route::ranked(2, Get, "/", hi);
-
     let not_found_catcher = Catcher::new(404, not_found_handler);
 
     // let echo = Route::new(Get, "/echo/<str>", echo_url);
@@ -34,6 +72,9 @@ fn rocket() -> _ {
     // let get_upload = Route::new(Get, "/", get_upload);
 
     rocket::build()
-        .mount("/", vec![always_forward, hello])
+        .mount("/", routes![index, hello])
         .register("/", vec![not_found_catcher])
+        .attach(Template::custom(|engines| {
+            customize(&mut engines.minijinja);
+        }))
 }
