@@ -1,11 +1,6 @@
-use bson::{DateTime, Document, doc, oid::ObjectId};
-use futures::stream::TryStreamExt;
+use bson::{Document, doc, oid::ObjectId};
 use mongodb::bson::Bson;
 use serde::{Deserialize, Serialize};
-
-use std::sync::Arc;
-
-use crate::datastore::Datastore;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(i32)]
@@ -68,67 +63,6 @@ impl JobV1 {
         let index_doc = doc! { "name": 1, };
         crate::datastore::Datastore::create_unique_index(collection, index_doc).await?;
 
-        Ok(())
-    }
-
-    /// Get jobs to run
-    /// This function retrieves jobs from the database that are ready to run (status 0 and next_run < current time)
-    /// It updates their status to 1 (running) and returns the jobs that are now running without agents.
-    pub async fn get_jobs_to_run(
-        datastore: Arc<Datastore>,
-        connected_agents: Vec<String>,
-    ) -> Result<Vec<JobV1>, Box<dyn std::error::Error>> {
-        let timestamp = DateTime::now().to_chrono().timestamp();
-        let collection = datastore.clone().get_collection::<JobV1>("jobs").await?;
-        // Filter for jobs with status 0 and next_run < current time
-        let filter = doc! {
-            "$and": [
-                { "status": Status::Pending }, // Jobs with status equal to 0
-                { "next_run": { "$lt": timestamp } },  // Jobs where next_run is LESS THAN current_utc_time
-                { "agents_running": [] }, // Jobs that are not currently running with agents
-                { "agents_required": { "$in": connected_agents } }
-            ]
-        };
-        let update = doc! {
-            "$set": {
-                "status": Status::Running
-            },
-        };
-        // Update the status of the jobs to 1 (running)
-        let _ = collection.update_many(filter, update).await?;
-        // Now fetch the jobs that are ready to run
-        let post_filter = doc! {
-            "$and": [
-                { "status": Status::Running  }, // Jobs with status equal to 1
-                { "agents_running": [] }
-            ]
-        };
-        // Fetch the jobs that are now running without agents
-        let mut cursor = collection.find(post_filter).await?;
-        let mut jobs = vec![];
-        while let Some(job) = cursor.try_next().await? {
-            jobs.push(job);
-        }
-        Ok(jobs)
-    }
-
-    /// Add an agent to the running job
-    /// This function updates the job in the database to include the agent in the `agents_running` list
-    /// It checks if the agent is already in the list to avoid duplicates.
-    /// Returns `Ok(())` if the agent was added successfully, or an error if the update failed.
-    pub async fn add_agent_to_running_job(
-        datastore: Arc<Datastore>,
-        job: &JobV1,
-        agent_name: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        if !job.agents_running.contains(&agent_name.to_string()) {
-            let mut agents_running = job.agents_running.clone();
-            agents_running.push(agent_name.to_string());
-            let collection = datastore.get_collection::<JobV1>("jobs").await?;
-            let filter = doc! { "_id": job.id };
-            let update = doc! { "$set": { "agents_running": agents_running } };
-            collection.update_one(filter, update).await?;
-        }
         Ok(())
     }
 }

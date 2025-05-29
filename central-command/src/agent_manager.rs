@@ -1,6 +1,44 @@
-use bson::Document;
+/// The `AgentManager` struct is responsible for managing connections to agents,
+/// dispatching jobs, and maintaining the state of connected agents in a distributed system.
+///
+/// # Responsibilities
+/// - Maintains a map of currently connected agents and their TCP streams.
+/// - Periodically fetches agent information from a database and attempts to connect to new agents.
+/// - Pings connected agents to ensure they are still reachable, removing any that are unreachable.
+/// - Dispatches jobs to agents based on job requirements and agent availability.
+/// - Updates job status and tracks which agents are running which jobs in the database.
+///
+/// # Key Methods
+/// - `new`: Creates a new `AgentManager` with the provided datastore.
+/// - `fetch_database_agents`: Retrieves all agents from the database and converts them into `ConnectedAgent` instances.
+/// - `check_for_unconnected_agents`: Checks for agents in the database that are not currently connected and attempts to connect to them.
+/// - `fetch_unconnected_agents`: Returns a list of agents from the database that are not currently connected.
+/// - `connect_unconnected_agents`: Attempts to establish TCP connections to a list of unconnected agents.
+/// - `ping_existing_agents`: Sends a ping message to each connected agent and removes those that are unreachable.
+/// - `run_job`: Dispatches a job to the required agents and updates the job's running state in the database.
+/// - `get_jobs_to_run`: Retrieves jobs from the database that are ready to run and updates their status.
+/// - `add_agent_to_running_job`: Updates a job in the database to include an agent in its running list.
+/// - `start`: Launches background tasks to periodically check for new agents, ping existing agents, connect to unconnected agents, and dispatch jobs.
+///
+/// # Usage
+/// Create an `AgentManager` instance and call `start` to begin managing agents and dispatching jobs.
+///
+/// # Example
+/// ```rust
+/// let datastore = Arc::new(Datastore::new(...));
+/// let agent_manager = AgentManager::new(datastore).await;
+/// agent_manager.start().await;
+/// ```
+///
+/// # Thread Safety
+/// The `AgentManager` uses `tokio::sync::Mutex` and `Arc` to ensure safe concurrent access
+/// when used in asynchronous tasks.
+///
+/// # Errors
+/// Most methods return `Result` types and log errors using the `tracing` crate.
+/// Errors are handled gracefully to ensure the manager continues running.
+use bson::{DateTime, Document, doc};
 use futures::stream::TryStreamExt;
-use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::spawn;
 use tokio::sync::Mutex;
@@ -14,7 +52,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use core_logic::communications::{DispatchJob, Message};
-use core_logic::datastore::{Datastore, agents::AgentV1, jobs::JobV1};
+use core_logic::datastore::{
+    Datastore,
+    agents::AgentV1,
+    jobs::{JobV1, Status},
+};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct ConnectedAgent {
@@ -140,23 +182,11 @@ impl AgentManager {
         for (agent, stream) in self.connected_agents.iter_mut() {
             debug!("Pinging agent {}!", agent.address);
 
-            let message: Vec<u8> = match Message::Ping.try_into() {
-                Ok(msg) => msg,
-                Err(e) => {
-                    error!("Failed to serialize message: {}", e);
-                    continue;
-                }
-            };
-
-            match stream.write_all(&message).await {
-                Ok(_) => {
-                    debug!("Pinged agent {} successfully!", agent.address);
-                }
-                Err(e) => {
-                    error!("Error pinging agent {}: {}", agent.address, e);
-                    agents_to_remove.push(agent.clone());
-                }
-            }
+            let message = Message::Ping;
+            message.tcp_write(stream).await.unwrap_or_else(|e| {
+                error!("Failed to send ping to agent {}: {}", agent.address, e);
+                agents_to_remove.push(agent.clone());
+            });
         }
 
         for agent in agents_to_remove {
@@ -191,20 +221,76 @@ impl AgentManager {
                 args: job.args.join(" "),
                 agent_name: Some(agent.name.clone()),
             };
-            let message: Vec<u8> = match Message::DispatchJob(dispatch_job).try_into() {
-                Ok(msg) => msg,
-                Err(e) => {
-                    error!("Failed to serialize message: {}", e);
-                    return Err(Box::new(e));
-                }
-            };
-            if let Err(e) = stream.write_all(&message).await {
+            let message = Message::DispatchJob(dispatch_job);
+
+            if let Err(e) = message.tcp_write(stream).await {
                 error!("Error writing to agent {}: {}", agent.address, e);
                 continue; // Skip to the next agent
             }
-            JobV1::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
+            Self::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
         }
 
+        Ok(())
+    }
+
+    /// Get jobs to run
+    /// This function retrieves jobs from the database that are ready to run (status 0 and next_run < current time)
+    /// It updates their status to 1 (running) and returns the jobs that are now running without agents.
+    pub async fn get_jobs_to_run(
+        datastore: Arc<Datastore>,
+        connected_agents: Vec<String>,
+    ) -> Result<Vec<JobV1>, Box<dyn std::error::Error>> {
+        let timestamp = DateTime::now().to_chrono().timestamp();
+        let collection = datastore.clone().get_collection::<JobV1>("jobs").await?;
+        // Filter for jobs with status 0 and next_run < current time
+        let filter = doc! {
+            "$and": [
+                { "status": Status::Pending }, // Jobs with status equal to 0
+                { "next_run": { "$lt": timestamp } },  // Jobs where next_run is LESS THAN current_utc_time
+                { "agents_running": [] }, // Jobs that are not currently running with agents
+                { "agents_required": { "$in": connected_agents } }
+            ]
+        };
+        let update = doc! {
+            "$set": {
+                "status": Status::Running
+            },
+        };
+        // Update the status of the jobs to 1 (running)
+        let _ = collection.update_many(filter, update).await?;
+        // Now fetch the jobs that are ready to run
+        let post_filter = doc! {
+            "$and": [
+                { "status": Status::Running  }, // Jobs with status equal to 1
+                { "agents_running": [] }
+            ]
+        };
+        // Fetch the jobs that are now running without agents
+        let mut cursor = collection.find(post_filter).await?;
+        let mut jobs = vec![];
+        while let Some(job) = cursor.try_next().await? {
+            jobs.push(job);
+        }
+        Ok(jobs)
+    }
+
+    /// Add an agent to the running job
+    /// This function updates the job in the database to include the agent in the `agents_running` list
+    /// It checks if the agent is already in the list to avoid duplicates.
+    /// Returns `Ok(())` if the agent was added successfully, or an error if the update failed.
+    pub async fn add_agent_to_running_job(
+        datastore: Arc<Datastore>,
+        job: &JobV1,
+        agent_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if !job.agents_running.contains(&agent_name.to_string()) {
+            let mut agents_running = job.agents_running.clone();
+            agents_running.push(agent_name.to_string());
+            let collection = datastore.get_collection::<JobV1>("jobs").await?;
+            let filter = doc! { "_id": job.id };
+            let update = doc! { "$set": { "agents_running": agents_running } };
+            collection.update_one(filter, update).await?;
+        }
         Ok(())
     }
 
@@ -275,13 +361,14 @@ impl AgentManager {
                     .map(|a| a.name.clone())
                     .collect::<Vec<_>>();
                 let data_store = manager_lock.datastore.clone();
-                let jobs_to_run = match JobV1::get_jobs_to_run(data_store, connected_agents).await {
-                    Ok(jobs) => jobs,
-                    Err(e) => {
-                        error!("Error fetching jobs: {}", e);
-                        continue; // Skip this iteration on error
-                    }
-                };
+                let jobs_to_run =
+                    match AgentManager::get_jobs_to_run(data_store, connected_agents).await {
+                        Ok(jobs) => jobs,
+                        Err(e) => {
+                            error!("Error fetching jobs: {}", e);
+                            continue; // Skip this iteration on error
+                        }
+                    };
                 for job in jobs_to_run.iter() {
                     info!("Running job: {:?}", job);
                     let _ = manager_lock.run_job(job).await;

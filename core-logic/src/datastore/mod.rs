@@ -1,3 +1,30 @@
+//! This module provides the core logic for interacting with the MongoDB datastore,
+//! including initialization, index creation, and collection access for the application.
+//!
+//! # Modules
+//! - `agents`: Contains logic and data structures related to agents.
+//! - `jobs`: Contains logic and data structures related to jobs.
+//!
+//! # Structs
+//! - [`Datastore`]: Represents a connection to the MongoDB database and provides methods
+//!   for managing collections and indices.
+//!
+//! # Enums
+//! - [`DataStoreTypes`]: Enum representing different types of data stored in the datastore.
+//!
+//! # Constants
+//! - `MONGODB_URI`: Default MongoDB connection string used if the environment variable is not set.
+//!
+//! # Usage
+//! - Use [`Datastore::try_new`] to initialize a new datastore connection.
+//! - Use [`Datastore::get_collection`] to access specific collections.
+//! - Use [`Datastore::create_unique_index`] to create unique indices on collections.
+//!
+//! # Errors
+//! - Most methods return a `Result` type and may return errors related to MongoDB operations.
+//!
+//! # Logging
+//! - Uses the `tracing` crate for logging connection and configuration information.
 pub mod agents;
 pub mod jobs;
 

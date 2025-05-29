@@ -1,3 +1,38 @@
+/// The `CommandReceiver` struct and its associated methods handle incoming TCP connections
+/// and process messages for agent registration and job completion in a distributed system.
+///
+/// # Overview
+/// - Listens for incoming TCP connections from agents.
+/// - Processes messages such as agent registration, job completion, and pings.
+/// - Interacts with a MongoDB datastore to register agents and update job statuses.
+///
+/// # Main Responsibilities
+/// - Accept new agent connections and spawn tasks to handle each connection.
+/// - Register agents in the database upon receiving a `RegisterAgent` message.
+/// - Mark jobs as complete for agents and update job status when all agents have completed.
+/// - Respond to agents with acknowledgments (e.g., "OK") after processing messages.
+///
+/// # Key Methods
+/// - `new`: Creates a new `CommandReceiver` bound to a server address.
+/// - `listen`: Accepts incoming TCP connections and processes messages from each agent.
+/// - `process_messages`: Reads and handles messages from a TCP stream, dispatching logic based on message type.
+/// - `register_agent`: Inserts a new agent into the database.
+/// - `mark_agent_job_complete`: Marks an agent as having completed a job and checks if the job is fully complete.
+/// - `check_job_if_all_agents_complete`: Checks if all required agents have completed a job and updates job status.
+///
+/// # Errors
+/// Methods return `Result` types and log errors using the `tracing` crate. Errors may occur during database operations,
+/// TCP communication, or message deserialization.
+///
+/// # Usage
+/// Typically, create a `CommandReceiver` with a shared `Datastore` client and call `listen()` to start accepting connections.
+///
+/// # Example
+/// ```rust
+/// let datastore = Arc::new(Datastore::new(...));
+/// let mut receiver = CommandReceiver::new(datastore).await;
+/// receiver.listen().await?;
+/// ```
 use bson::{Document, doc};
 use core_logic::communications::{JobComplete, Message, RegisterAgent};
 use tokio::io::AsyncReadExt;

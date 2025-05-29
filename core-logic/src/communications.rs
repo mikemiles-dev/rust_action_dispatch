@@ -1,9 +1,45 @@
+//! This module defines communication structures and serialization logic for messages exchanged
+//! between agents and the dispatcher in a distributed system. It leverages the `rkyv` crate for
+//! zero-copy serialization and deserialization, and provides asynchronous TCP write support using
+//! Tokio.
+//!
+//! # Structures
+//!
+//! - `RegisterAgent`: Represents an agent registration message, containing the agent's name,
+//!   hostname, and port.
+//! - `DispatchJob`: Represents a job dispatch message, including job name, command, arguments, and
+//!   an optional agent name.
+//! - `JobComplete`: Indicates the completion of a job by an agent, including job and agent names.
+//! - `Message`: An enum encapsulating all possible message types exchanged in the system.
+//!
+//! # Error Handling
+//!
+//! - `MessageError`: Enumerates possible errors during message serialization or TCP writing.
+//!
+//! # Serialization
+//!
+//! Implements conversions between `Message` and its archived form for efficient transmission over
+//! the network. Provides `TryFrom` implementations for converting between `Message` and `Vec<u8>`
+//! using `rkyv` serialization.
+//!
+//! # TCP Communication
+//!
+//! - `Message::tcp_write`: Asynchronously writes a serialized message to a `TcpStream`.
+//!
+//! # Example
+//!
+//! ```rust
+//! use tokio::net::TcpStream;
+//! use core_logic::communications::Message;
+//!
+//! async fn send_message(stream: &mut TcpStream, message: Message) -> Result<(), Box<dyn std::error::Error>> {
+//!     message.tcp_write(stream).await?;
+//!     Ok(())
+//! }
+//! ```
 use rkyv::{Archive, Deserialize, Serialize, option::ArchivedOption, rancor::Error};
-
-pub enum Direction {
-    CommandToAgent,
-    AgentToCommand,
-}
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
 
 #[derive(Archive, Deserialize, Serialize, Hash, PartialEq, Eq, Debug, Clone)]
 pub struct RegisterAgent {
@@ -32,6 +68,31 @@ pub enum Message {
     RegisterAgent(RegisterAgent),
     DispatchJob(DispatchJob),
     JobComplete(JobComplete), // Job Name
+}
+
+pub enum MessageError {
+    SerializationError(Error),
+    WriteError(tokio::io::Error),
+}
+
+impl std::fmt::Display for MessageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MessageError::SerializationError(e) => write!(f, "Serialization error: {}", e),
+            MessageError::WriteError(e) => write!(f, "Write error: {}", e),
+        }
+    }
+}
+
+impl Message {
+    pub async fn tcp_write(self, stream: &mut TcpStream) -> Result<(), MessageError> {
+        let message: Vec<u8> = self.try_into().map_err(MessageError::SerializationError)?;
+        stream
+            .write_all(&message)
+            .await
+            .map_err(MessageError::WriteError)?;
+        Ok(())
+    }
 }
 
 impl From<&ArchivedMessage> for Message {

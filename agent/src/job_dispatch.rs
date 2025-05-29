@@ -1,3 +1,24 @@
+/// `JobDispatcher` is responsible for managing and dispatching jobs to be executed asynchronously.
+/// It communicates job completion back to a central command writer.
+///
+/// # Fields
+/// - `sender`: An asynchronous channel sender used to queue job names for completion notification.
+///
+/// # Example
+/// ```rust
+/// let dispatcher = JobDispatcher::new(central_command_writer);
+/// dispatcher.spawn(job).await;
+/// ```
+///
+/// # Usage
+/// - Use `JobDispatcher::new` to create a new dispatcher, passing an `Arc<Mutex<CentralCommandWriter>>`.
+/// - Call `spawn` with a `DispatchJob` to execute a job asynchronously.
+/// - Upon job completion, a `JobComplete` message is sent to the central command.
+///
+/// # Notes
+/// - The actual command execution is performed using `tokio::process::Command`.
+/// - Job completion is notified via an mpsc channel and handled in a background task.
+/// - Logging is performed using the `tracing` crate.
 use std::sync::Arc;
 use tokio::process::Command;
 use tokio::spawn;

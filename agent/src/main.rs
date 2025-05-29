@@ -1,3 +1,47 @@
+//! # Rust Action Dispatch Agent
+//!
+//! This crate implements an agent for a distributed action dispatch system. The agent connects to a central command server,
+//! registers itself, listens for incoming job dispatch requests, and executes jobs as instructed.
+//!
+//! ## Features
+//! - Connects and registers with a central command server.
+//! - Listens for incoming TCP connections for job dispatch requests.
+//! - Handles job execution and communication with the central server.
+//! - Automatic reconnection logic for central command server failures.
+//!
+//! ## Environment Variables
+//! - `AGENT_PORT`: The port on which the agent listens for incoming connections (default: 8081).
+//! - `AGENT_NAME`: The name of the agent (default: "default_agent").
+//!
+//! ## Main Components
+//! - [`ConnectionManager`]: Manages connections to the central command server and handles incoming job requests.
+//! - [`CentralCommandWriter`]: Handles sending messages to the central command server with automatic reconnection.
+//! - [`JobDispatcher`]: Responsible for executing dispatched jobs (see `job_dispatch` module).
+//!
+//! ## Protocol
+//! - Messages are serialized and sent over TCP.
+//! - Each message sent to the central command server expects an "OK" reply.
+//!
+//! ## Logging
+//! - Uses the `tracing` crate for structured logging at various levels (info, debug, error).
+//!
+//! ## Example Usage
+//! ```sh
+//! AGENT_PORT=9000 AGENT_NAME=my_agent cargo run
+//! ```
+//!
+//! ## Error Handling
+//! - Connection attempts to the central command server are retried up to 60 times with a 5-second delay between attempts.
+//! - Serialization and I/O errors are logged and handled gracefully.
+//!
+//! ## Extensibility
+//! - The agent is designed to be extended with additional message types and job handling logic.
+//!
+//! ## Dependencies
+//! - `tokio` for async networking
+//! - `tracing` for logging
+//! - `hostname` for retrieving the system hostname
+//! - `core_logic::communications` for message definitions
 mod job_dispatch;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -65,6 +109,11 @@ async fn main() -> io::Result<()> {
     Ok(())
 }
 
+/// Manages the application's connections, including the central command writer and job dispatcher.
+///
+/// # Fields
+/// - `central_command_writer`: Shared, thread-safe writer for sending commands to the central system.
+/// - `job_dispatcher`: Responsible for dispatching jobs to appropriate handlers.
 pub struct ConnectionManager {
     central_command_writer: Arc<Mutex<CentralCommandWriter>>,
     job_dispatcher: job_dispatch::JobDispatcher,
@@ -234,12 +283,11 @@ impl ConnectionManager {
 
                                 self.handle_message(message, peer_addr).await?;
 
-                                // // Echo the data back to the client (example of keeping the connection active)
-                                // if let Err(e) = stream.write_all(&[]).await {
-                                //     error!("Error writing to {}: {}", peer_addr, e);
-                                //     break;
-                                // }
-                                //self.ping_central_command().await;
+                                // Echo the data back to the client (example of keeping the connection active)
+                                if let Err(e) = stream.write_all(b"OK").await {
+                                    error!("Error writing to {}: {}", peer_addr, e);
+                                    break;
+                                }
                             }
                             Err(e) => {
                                 error!("Error reading from {}: {}", peer_addr, e);
