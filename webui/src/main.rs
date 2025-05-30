@@ -47,22 +47,20 @@ pub fn index() -> Template {
     Template::render(
         "index",
         context! {
-            title: "Hello",
-            name: Some("blah"),
-            items: vec!["One", "Two", "Three"],
+            title: "Dashboard",
         },
     )
 }
 
 #[get("/runs?<page>")]
 pub async fn runs(state: &State<WebState>, page: Option<u32>) -> Template {
+    let page_size = 20;
+    let page = page.unwrap_or(1).max(1);
+    let skip = (page.saturating_sub(1)).saturating_mul(page_size);
+
     let runs_future = { state.datastore.get_collection::<RunsV1>("runs") };
     let collection = runs_future.await.expect("Failed to get runs collection");
     let filter = bson::doc! {};
-
-    let page_size = 20;
-    let page = page.unwrap_or(1).max(1);
-    let skip = (page - 1) * page_size;
 
     let mut cursor = collection
         .find(filter.clone())
@@ -116,11 +114,6 @@ pub fn customize(env: &mut Environment) {
 #[rocket::launch]
 async fn rocket() -> _ {
     let not_found_catcher = Catcher::new(404, not_found_handler);
-
-    // let echo = Route::new(Get, "/echo/<str>", echo_url);
-    // let name = Route::new(Get, "/<name>", name);
-    // let post_upload = Route::new(Post, "/", upload);
-    // let get_upload = Route::new(Get, "/", get_upload);
 
     let web_state = WebState {
         datastore: Datastore::try_new()
