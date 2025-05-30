@@ -159,8 +159,8 @@ impl CommandReceiver {
         }
 
         // Mark the agent as having completed the job
-        let log: RunsV1 = job_complete.into();
-        log.insert_entry(&db).await?;
+        let run: RunsV1 = job_complete.into();
+        run.insert_entry(&db).await?;
 
         drop(db);
         Self::check_job_completion(datastore_client.clone(), &job_name).await?;

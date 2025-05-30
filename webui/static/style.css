@@ -72,6 +72,22 @@ body {
     color: rgb(232, 91, 91);
 }
 
+.search {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background: #fff;
+    border-radius: 8px;
+    border-color: #e0e0e0;
+    box-shadow: 0 2px 8px rgba(114, 114, 114, 0.06);
+    padding: 8px 0px;
+    font-size: 1em;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-left: 10px;
+}
+
 .copyright {
     position: fixed;
     bottom: 10px;

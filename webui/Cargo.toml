@@ -9,5 +9,9 @@ readme.workspace = true
 repository.workspace = true
 
 [dependencies]
+bson.workspace = true
+core-logic.workspace = true
+futures.workspace = true
 rocket_dyn_templates.workspace = true
 rocket.workspace = true
+mongodb.workspace = true
