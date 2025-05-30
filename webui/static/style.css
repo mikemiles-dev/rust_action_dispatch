@@ -96,6 +96,22 @@ body {
     color: #888;
 }
 
+.pagination_prev {
+    flex: 1; text-align: left;
+}
+
+.pagination_next {
+    flex: 1; text-align: right;
+}
+
+.pagination_center {
+    flex: 1; text-align: center;
+}
+
+.pagination_wrapper {
+    display: flex; align-items: center; justify-content: center; margin: 20px 0;
+}
+
 .content table {
     width: 100%;
     background: #fafbfc;

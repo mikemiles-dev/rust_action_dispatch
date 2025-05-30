@@ -4,13 +4,13 @@
   <h1>Runs</h1>
   <input class="search" name="search" autofocus></input>
 
-  <div style="display: flex; align-items: center; justify-content: center; margin: 20px 0;">
-    <div style="flex: 1; text-align: left;">
+  <div class="pagination_wrapper">
+    <div class="pagination_prev">
       {% if current_page != 1 %}
         <a href="#" onclick="decrementPageAndReload(); return false;">&laquo; Prev</a>
       {% endif %}
     </div>
-    <div style="flex: 1; text-align: center;">
+    <div class="pagination_center">
       {% for page in range(1, total_pages + 1) %}
         {% if page == current_page %}
           <span style="font-weight: bold;">{{ page }}</span>
@@ -20,7 +20,7 @@
         {% if not loop.last %} {% endif %}
       {% endfor %}
     </div>
-    <div style="flex: 1; text-align: right;">
+    <div class="pagination_next">
       {% if current_page != total_pages %}
         <a href="#" onclick="incrementPageAndReload(); return false;">Next &raquo;</a>
       {% endif %}
