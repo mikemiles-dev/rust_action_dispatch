@@ -1,4 +1,6 @@
 use rocket::data::{Data, ToByteUnit};
+use rocket::fs::NamedFile;
+use rocket::fs::{FileServer, relative};
 use rocket::http::{
     Method::{Get, Post},
     Status,
@@ -8,33 +10,24 @@ use rocket::response::Redirect;
 use rocket::response::{Responder, status::Custom};
 use rocket::routes;
 use rocket::tokio::fs::File;
+
 use rocket::{Catcher, Request, Route, catcher, route};
 use rocket::{get, uri};
+
+use std::path::{Path, PathBuf};
 
 use rocket_dyn_templates::{
     Template, context,
     minijinja::{self, Environment},
 };
 
-fn forward<'r>(_req: &'r Request, data: Data<'r>) -> route::BoxFuture<'r> {
-    Box::pin(async move { route::Outcome::forward(data, Status::NotFound) })
-}
+// fn forward<'r>(_req: &'r Request, data: Data<'r>) -> route::BoxFuture<'r> {
+//     Box::pin(async move { route::Outcome::forward(data, Status::NotFound) })
+// }
 
 // fn hi<'r>(req: &'r Request, _: Data<'r>) -> route::BoxFuture<'r> {
 //     route::Outcome::from(req, "Hello!").pin()
 // }
-
-#[get("/hello/<name>")]
-pub fn hello(name: &str) -> Template {
-    Template::render(
-        "/index",
-        context! {
-            title: "Hello",
-            name: Some(name),
-            items: vec!["One", "Two", "Three"],
-        },
-    )
-}
 
 #[get("/")]
 pub fn index() -> Template {
@@ -46,6 +39,23 @@ pub fn index() -> Template {
             items: vec!["One", "Two", "Three"],
         },
     )
+}
+
+#[get("/logs")]
+pub fn logs() -> Template {
+    Template::render(
+        "logs",
+        context! {
+            page_name: "Hello",
+        },
+    )
+}
+
+#[rocket::get("/static/<path..>")]
+pub async fn static_files(path: PathBuf) -> Option<NamedFile> {
+    let mut path = Path::new(relative!("static")).join(path);
+
+    NamedFile::open(path).await.ok()
 }
 
 fn not_found_handler<'r>(_: Status, req: &'r Request) -> catcher::BoxFuture<'r> {
@@ -79,7 +89,12 @@ fn rocket() -> _ {
     // let get_upload = Route::new(Get, "/", get_upload);
 
     rocket::build()
-        .mount("/", routes![index, hello])
+        .mount("/", routes![index, logs])
+        .mount("/", rocket::routes![static_files])
+        .mount(
+            "/",
+            FileServer::new(relative!("static"), rocket::fs::Options::default()),
+        )
         .register("/", vec![not_found_catcher])
         .attach(Template::custom(|engines| {
             customize(&mut engines.minijinja);
