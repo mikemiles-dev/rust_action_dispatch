@@ -49,3 +49,9 @@ function decrementPageAndReload() {
         window.location.href = url.toString();
     }
 }
+
+function goToPage(pageNumber) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', pageNumber);
+    window.location = url.toString();
+}
