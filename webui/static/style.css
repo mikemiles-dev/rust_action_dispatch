@@ -44,6 +44,19 @@ body {
     color: rgb(212, 212, 212);
 }
 
+.home-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    padding: 24px 32px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 220px;
+    max-width: 100%;
+}
+
 .nav-red {
     color: rgb(232, 91, 91);
 }
