@@ -27,6 +27,7 @@ use rocket_dyn_templates::{
 };
 
 use core_logic::datastore::Datastore;
+use mongodb::options::FindOptions;
 
 struct WebState {
     datastore: Datastore,
@@ -52,14 +53,22 @@ pub fn index() -> Template {
     )
 }
 
-#[get("/runs")]
-pub async fn runs(state: &State<WebState>) -> Template {
+#[get("/runs?<page>")]
+pub async fn runs(state: &State<WebState>, page: Option<u32>) -> Template {
     let runs_future = { state.datastore.get_collection::<RunsV1>("runs") };
     let collection = runs_future.await.expect("Failed to get runs collection");
     let filter = bson::doc! {};
 
-    let mut cursor = collection.find(filter).await.expect("Failed to find runs");
+    let page_size = 20;
+    let page = page.unwrap_or(1).max(1);
+    let skip = (page - 1) * page_size;
 
+    let mut cursor = collection
+        .find(filter.clone())
+        .skip(skip as u64)
+        .limit(page_size as i64)
+        .await
+        .expect("Failed to find runs");
     let mut runs = Vec::new();
     while let Some(result) = cursor.next().await {
         match result {

@@ -6,13 +6,21 @@
   <table>
     <thead>
       <tr>
-        <th>Log Item</th>
+        <th>Agent</th>
+        <th>Job</th>
+        <th>Started At</th>
+        <th>Completed At</th>
+        <th>Return Code</th>
       </tr>
     </thead>
     <tbody>
       {% for item in items %}
         <tr>
-          <td>{{ item }}</td>
+          <td>{{ item.agent_name }}</td>
+          <td>{{ item.job_name }}</td>
+          <td>{{ item.started_at }}</td>
+          <td>{{ item.completed_at }}</td>
+          <td>{{ item.return_code }}</td>
         </tr>
       {% endfor %}
     </tbody>
