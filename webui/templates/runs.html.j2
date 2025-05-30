@@ -1,0 +1,19 @@
+{% extends "layout" %}
+
+{% block page %}
+  <h1>Runs</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Log Item</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td>{{ item }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

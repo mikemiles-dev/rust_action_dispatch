@@ -21,11 +21,11 @@ body {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
     border: 1px solid #e0e0e0;
     padding: 20px;
-    padding-top: 10px;
+    padding-top: 0px;
 }
 
 .nav {
-    line-height: 40px;
+    line-height: 50px;
     position: fixed;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.10);
     left: 0;
@@ -56,9 +56,10 @@ body {
 }
 
 .nav-items {
-    margin-top: 20px;
+    font-size: 0.9em;
+    margin-top: 40px;
     margin-left: 15px;
-    color: white;
+    color: rgb(219, 219, 219);
     text-justify: left;
 }
 
@@ -69,4 +70,124 @@ body {
 
 .nav-items a:hover {
     color: rgb(232, 91, 91);
+}
+
+.copyright {
+    position: fixed;
+    bottom: 10px;
+    left: 20px;
+    font-size: 0.6em;
+    color: #888;
+}
+
+.content table {
+    width: 100%;
+    background: #fafbfc;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    overflow: hidden;
+    font-size: 1em;
+}
+
+.content table th {
+    background: #f1f1f1;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.content table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+.content table tr:nth-child(even) {
+    background: #f9f9f9;
+}
+.content table tr:hover {
+    background: #f1f1f1;
+}
+.content table th, .content table td {
+    text-align: left;
+}
+.content table th {
+    color: #333;
+}
+.content table td {
+    color: #555;
+}
+.content table td a {
+    color: #007bff;
+    text-decoration: none;
+}
+.content table td a:hover {
+    text-decoration: underline;
+}
+.content table td .badge {
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    color: #fff;
+}
+.content table td .badge.success {
+    background-color: #28a745;
+}
+.content table td .badge.error {
+    background-color: #dc3545;
+}
+.content table td .badge.warning {
+    background-color: #ffc107;
+}
+.content table td .badge.info {
+    background-color: #17a2b8;
+}
+.content table td .badge.primary {
+    background-color: #007bff;
+}
+.content table td .badge.secondary {
+    background-color: #6c757d;
+}
+.content table td .badge.light {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+.content table td .badge.dark {
+    background-color: #343a40;
+    color: #fff;
+}
+.content table td .badge:hover {
+    opacity: 0.8;
+}
+.content table td .badge:active {
+    opacity: 0.6;
+}
+.content table td .badge:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+.content table td .badge:focus:hover {
+    opacity: 1;
+}
+.content table td .badge:focus:active {
+    opacity: 0.8;
+}
+.content table td .badge:focus:active:hover {
+    opacity: 1;
+}
+.content table td .badge:focus:active:focus {
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+.content table td .badge:focus:active:focus:hover {
+    opacity: 1;
+}
+.content table td .badge:focus:active:focus:active {
+    opacity: 0.8;
+}
+.content table td .badge:focus:active:focus:active:hover {
+    opacity: 1;
+}
+.content table td .badge:focus:active:focus:active {
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+.content table td .badge:focus:active:focus:active {
+    opacity: 0.8;
 }

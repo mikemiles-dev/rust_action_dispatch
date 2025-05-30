@@ -36,7 +36,7 @@
 use bson::{Array, Document, doc};
 use core_logic::{
     communications::{JobComplete, Message, RegisterAgent},
-    datastore::logs::LogsV1,
+    datastore::runs::RunsV1,
 };
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
@@ -159,7 +159,7 @@ impl CommandReceiver {
         }
 
         // Mark the agent as having completed the job
-        let log: LogsV1 = job_complete.into();
+        let log: RunsV1 = job_complete.into();
         log.insert_entry(&db).await?;
 
         drop(db);

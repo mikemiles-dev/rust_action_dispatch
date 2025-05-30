@@ -41,11 +41,12 @@ pub fn index() -> Template {
     )
 }
 
-#[get("/logs")]
-pub fn logs() -> Template {
+#[get("/runs")]
+pub fn runs() -> Template {
     Template::render(
-        "logs",
+        "runs",
         context! {
+            items: vec!["Log 1", "Log 2", "Log 3"],
             page_name: "Hello",
         },
     )
@@ -53,8 +54,7 @@ pub fn logs() -> Template {
 
 #[rocket::get("/static/<path..>")]
 pub async fn static_files(path: PathBuf) -> Option<NamedFile> {
-    let mut path = Path::new(relative!("static")).join(path);
-
+    let path = Path::new(relative!("static")).join(path);
     NamedFile::open(path).await.ok()
 }
 
@@ -89,7 +89,7 @@ fn rocket() -> _ {
     // let get_upload = Route::new(Get, "/", get_upload);
 
     rocket::build()
-        .mount("/", routes![index, logs])
+        .mount("/", routes![index, runs])
         .mount("/", rocket::routes![static_files])
         .mount(
             "/",

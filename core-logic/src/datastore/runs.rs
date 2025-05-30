@@ -10,7 +10,7 @@ use std::error::Error;
 use crate::communications::JobComplete;
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
-pub struct LogsV1 {
+pub struct RunsV1 {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub started_at: DateTime,
@@ -20,16 +20,16 @@ pub struct LogsV1 {
     pub return_code: i32,
 }
 
-impl LogsV1 {
+impl RunsV1 {
     pub async fn insert_entry(&self, db: &mongodb::Database) -> Result<(), Box<dyn Error>> {
-        let logs_collection = db.collection::<Document>("logs");
+        let runs_collection = db.collection::<Document>("runs");
         let doc = bson::to_document(self)?;
-        logs_collection.insert_one(doc).await?;
+        runs_collection.insert_one(doc).await?;
         Ok(())
     }
 }
 
-impl From<JobComplete> for LogsV1 {
+impl From<JobComplete> for RunsV1 {
     fn from(job_complete: JobComplete) -> Self {
         Self {
             id: None,
