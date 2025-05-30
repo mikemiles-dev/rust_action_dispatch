@@ -18,9 +18,6 @@ use rocket::{get, uri};
 use futures::StreamExt;
 use mongodb::{Client, Database};
 
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
-
 use rocket_dyn_templates::{
     Template, context,
     minijinja::{self, Environment},
@@ -28,6 +25,10 @@ use rocket_dyn_templates::{
 
 use core_logic::datastore::Datastore;
 use mongodb::options::FindOptions;
+
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::env;
 
 struct WebState {
     datastore: Datastore,
@@ -126,8 +127,16 @@ async fn rocket() -> _ {
             .await
             .expect("Failed to initialize datastore"),
     };
+    // Read port from environment variable or default to 8000
+    let port: u16 = env::var("WEBUI_PORT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(8000);
+
+    let figment = rocket::Config::figment().merge(("port", port));
 
     rocket::build()
+        .configure(rocket::Config::from(figment))
         .manage(web_state)
         .mount("/", routes![index, runs])
         .mount("/", rocket::routes![static_files])
