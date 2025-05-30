@@ -3,6 +3,31 @@
 {% block page %}
   <h1>Runs</h1>
   <input class="search" name="search" autofocus></input>
+
+  <div style="display: flex; align-items: center; justify-content: center; margin: 20px 0;">
+    <div style="flex: 1; text-align: left;">
+      {% if current_page != 1 %}
+        <a href="#" onclick="decrementPageAndReload(); return false;">&laquo; Prev</a>
+      {% endif %}
+    </div>
+    <div style="flex: 1; text-align: center;">
+      {% for page in range(1, total_pages + 1) %}
+        {% if page == current_page %}
+          <span style="font-weight: bold;">{{ page }}</span>
+        {% else %}
+          <a href="#" onclick="goToPage({{ page }}); return false;">{{ page }}</a>
+        {% endif %}
+        {% if not loop.last %} {% endif %}
+      {% endfor %}
+    </div>
+    <div style="flex: 1; text-align: right;">
+      {% if current_page != total_pages %}
+        <a href="#" onclick="incrementPageAndReload(); return false;">Next &raquo;</a>
+      {% endif %}
+    </div>
+  </div>
+
+
   <table>
     <thead>
       <tr>
@@ -26,42 +51,5 @@
     </tbody>
   </table>
 
-  <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Select all elements with the 'utc-date' class
-            const dateCells = document.querySelectorAll('.utc-date');
-
-            dateCells.forEach(cell => {
-                const timestamp = parseInt(cell.dataset.timestamp); // Get the timestamp from data-timestamp
-                if (!isNaN(timestamp)) {
-                    const date = new Date(timestamp); // Create a Date object from the milliseconds timestamp
-
-                    // Format it as a UTC string
-                    // Option 1: Standard UTC string
-                    // const utcString = date.toUTCString();
-
-                    // Option 2: ISO 8601 UTC string (often preferred for consistency)
-                    // const utcString = date.toISOString();
-
-                    // Option 3: More readable custom UTC format using Intl.DateTimeFormat
-                    const options = {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false, // Use 24-hour format
-                        timeZone: 'UTC', // Ensure it's UTC
-                        timeZoneName: 'short' // e.g., "GMT" or "UTC"
-                    };
-                    const utcString = new Intl.DateTimeFormat('en-US', options).format(date);
-
-
-                    cell.textContent = utcString; // Replace the cell's content with the formatted date
-                }
-            });
-        });
-    </script>
-
+ 
 {% endblock %}

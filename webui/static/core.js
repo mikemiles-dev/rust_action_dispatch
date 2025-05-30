@@ -33,3 +33,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function incrementPageAndReload() {
+    const url = new URL(window.location.href);
+    const currentPage = parseInt(url.searchParams.get('page')) || 1;
+    url.searchParams.set('page', currentPage + 1);
+    window.location.href = url.toString();
+}
+
+function decrementPageAndReload() {
+    const url = new URL(window.location.href);
+    const currentPage = parseInt(url.searchParams.get('page')) || 1;
+    if (currentPage > 1) {
+        url.searchParams.set('page', currentPage - 1);
+        window.location.href = url.toString();
+    }
+}

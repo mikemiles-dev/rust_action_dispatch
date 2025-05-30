@@ -53,15 +53,28 @@ pub fn index() -> Template {
     )
 }
 
-#[get("/runs?<page>")]
-pub async fn runs(state: &State<WebState>, page: Option<u32>) -> Template {
+#[get("/runs?<page>&<filter>&<sort>")]
+pub async fn runs(
+    state: &State<WebState>,
+    page: Option<u32>,
+    filter: Option<String>,
+    sort: Option<String>,
+) -> Template {
     let runs_future = { state.datastore.get_collection::<RunsV1>("runs") };
     let collection = runs_future.await.expect("Failed to get runs collection");
     let filter = bson::doc! {};
 
     let page_size = 20;
-    let page = page.unwrap_or(1).max(1);
-    let skip = (page - 1) * page_size;
+    let page = page.unwrap_or(1);
+    let skip = page.saturating_sub(1).saturating_mul(page_size);
+
+    // Count total documents for pagination
+    let total_count = collection
+        .count_documents(filter.clone())
+        .await
+        .expect("Failed to count documents");
+
+    let total_pages = total_count.div_ceil(page_size as u64);
 
     let mut cursor = collection
         .find(filter.clone())
@@ -80,7 +93,9 @@ pub async fn runs(state: &State<WebState>, page: Option<u32>) -> Template {
         "runs",
         context! {
             items: runs,
-            page_name: "Hello",
+            total_pages,
+            current_page: page,
+            page_name: "Runs",
         },
     )
 }
