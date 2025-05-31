@@ -17,7 +17,7 @@
      <input id="range_end" type="datetime-local">
     </div>
     <div style="float: left">
-      <button class="btn" onclick="applyFilterAndReload('filter', '', true, true); return false;">Apply</button>
+      <button class="btn" onclick="applyFilterAndReload('filter', document.querySelector('input[name=search]').value, true, true); return false;">Apply</button>
       <button class="btn" onclick="window.location.href = window.location.pathname; return false;">Clear</button>
     </div>
   </div>

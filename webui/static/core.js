@@ -83,13 +83,13 @@ function applyFilterAndReload(filterName, filterValue, change_order = false, res
         const endDate = new Date(rangeEndInput.value.trim());
         if (!isNaN(endDate.getTime())) {
             let rangeEndMs = Date.UTC(
-                EndDate.getUTCFullYear(),
-                EndDate.getUTCMonth(),
-                EndDate.getUTCDate(),
-                EndDate.getUTCHours(),
-                EndDate.getUTCMinutes(),
-                EndDate.getUTCSeconds(),
-                EndDate.getUTCMilliseconds()
+                endDate.getUTCFullYear(),
+                endDate.getUTCMonth(),
+                endDate.getUTCDate(),
+                endDate.getUTCHours(),
+                endDate.getUTCMinutes(),
+                endDate.getUTCSeconds(),
+                endDate.getUTCMilliseconds()
             ); // This is epoch milliseconds in UTC
             url.searchParams.set('range_end', rangeEndMs);
         }
