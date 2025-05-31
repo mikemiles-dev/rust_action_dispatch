@@ -42,7 +42,11 @@ pub async fn runs(
 ) -> Template {
     let data_page_params = DataPageParams {
         collection: "runs".to_string(),
-        sort_fields: vec!["job_name".to_string(), "agent_name".to_string()],
+        sort_fields: vec![
+            "job_name".to_string(),
+            "agent_name".to_string(),
+            "return_code".to_string(),
+        ],
         page,
         filter: filter.clone(),
         sort,
