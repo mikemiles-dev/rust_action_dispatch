@@ -2,9 +2,12 @@
 
 {% block page %}
   <h1>Runs</h1>
-  <input onchange="applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" autofocus>
 
-  <div style="float: left;">
+  <div style="float: left">
+    <input onchange="applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" autofocus>
+  </div>
+
+  <div style="float: right;">
     <div style="float: left; width: 50px; padding: 5px;">
       <b>To:</b><br>
       <b>From:</b>
@@ -15,6 +18,7 @@
     </div>
     <div style="float: left">
       <button class="btn" onclick="applyFilterAndReload('filter', '', true, true); return false;">Apply</button>
+      <button class="btn" onclick="window.location.href = window.location.pathname; return false;">Clear</button>
     </div>
   </div>
   
@@ -22,11 +26,11 @@
   <table>
     <thead>
       <tr>
-        <th>Agent</th>
-        <th>Job</th>
+        <th><a href="#" onclick="applyFilterAndReload('sort', 'agent_name', true);  return false;">Agent Name</a></th>
+        <th><a href="#" onclick="applyFilterAndReload('sort', 'job_name', true);  return false;">Job Name</a></th>
         <th><a href="#" onclick="applyFilterAndReload('sort', 'started_at', true);  return false;">Started At</a></th>
         <th><a href="#" onclick="applyFilterAndReload('sort', 'completed_at', true);  return false;">Completed At</a></th>
-        <th>Return Code</th>
+        <th><a href="#" onclick="applyFilterAndReload('sort', 'return_code', true);  return false;">Return Code</a></th>
       </tr>
     </thead>
     <tbody>

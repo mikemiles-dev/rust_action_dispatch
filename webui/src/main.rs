@@ -46,7 +46,7 @@ pub async fn runs(
         collection: "runs".to_string(),
         range_start: range_start.clone(),
         range_end: range_end.clone(),
-        sort_fields: vec![
+        search_fields: vec![
             "job_name".to_string(),
             "agent_name".to_string(),
             "return_code".to_string(),
