@@ -73,6 +73,7 @@ impl TryFrom<AgentV1> for ConnectedAgent {
         let mut socket_addr = match addr.to_socket_addrs() {
             Ok(addr) => addr,
             Err(e) => {
+                error!("Failed to parse address {}: {}", addr, e);
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     format!("Failed to parse address: {}", e),
