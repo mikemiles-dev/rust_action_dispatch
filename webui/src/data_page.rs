@@ -1,3 +1,4 @@
+use bson::DateTime;
 use futures::StreamExt;
 use mongodb::options::FindOptions;
 use rocket::State;
@@ -6,6 +7,8 @@ use crate::WebState;
 
 pub struct DataPageParams {
     pub collection: String,
+    pub range_start: Option<String>,
+    pub range_end: Option<String>,
     pub sort_fields: Vec<String>,
     pub page: Option<u32>,
     pub filter: Option<String>,
@@ -24,6 +27,8 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
     pub async fn new(state: &State<WebState>, data_page_params: DataPageParams) -> DataPage<T> {
         let DataPageParams {
             collection,
+            range_start,
+            range_end,
             sort_fields,
             page,
             filter,

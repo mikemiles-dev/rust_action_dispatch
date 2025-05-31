@@ -4,7 +4,20 @@
   <h1>Runs</h1>
   <input onchange="applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" autofocus>
 
-  {% include "pagination" %}
+  <div style="float: left;">
+    <div style="float: left; width: 50px; padding: 5px;">
+      <b>To:</b><br>
+      <b>From:</b>
+    </div>
+    <div style="float: left; width: 220px">
+     <input type="datetime-local"><br>
+     <input type="datetime-local">
+    </div>
+    <div style="float: left">
+      <button class="btn" onclick="applyFilterAndReload('filter', '', true, true); return false;">Apply</button>
+    </div>
+  </div>
+  
 
   <table>
     <thead>

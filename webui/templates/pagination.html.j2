@@ -1,7 +1,7 @@
   <div class="pagination_wrapper">
     <div class="pagination_prev">
       {% if current_page != 1 %}
-        <a href="#" class="pagination_btn" onclick="decrementPageAndReload(); return false;">&laquo; Prev</a>
+        <a href="#" class="btn" onclick="decrementPageAndReload(); return false;">&laquo; Prev</a>
       {% endif %}
     </div>
     <div class="pagination_center">
@@ -25,7 +25,7 @@
     </div>
     <div class="pagination_next">
       {% if current_page != total_pages %}
-        <a href="#" class="pagination_btn" onclick="incrementPageAndReload(); return false;">Next &raquo;</a>
+        <a href="#" class="btn" onclick="incrementPageAndReload(); return false;">Next &raquo;</a>
       {% endif %}
     </div>
   </div>

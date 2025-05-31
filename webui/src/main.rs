@@ -32,16 +32,20 @@ pub fn index() -> Template {
     )
 }
 
-#[get("/runs?<page>&<filter>&<sort>&<order>")]
+#[get("/runs?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
 pub async fn runs(
     state: &State<WebState>,
     page: Option<u32>,
+    range_start: Option<String>,
+    range_end: Option<String>,
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
 ) -> Template {
     let data_page_params = DataPageParams {
         collection: "runs".to_string(),
+        range_start,
+        range_end,
         sort_fields: vec![
             "job_name".to_string(),
             "agent_name".to_string(),
@@ -65,6 +69,8 @@ pub async fn runs(
         "runs",
         context! {
             items: runs,
+            range_start: range_start.unwrap_or_default(),
+            range_end: range_end.unwrap_or_default(),
             total_pages,
             current_page: page,
             filter: filter.unwrap_or_default(),
