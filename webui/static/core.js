@@ -55,3 +55,10 @@ function goToPage(pageNumber) {
     url.searchParams.set('page', pageNumber);
     window.location = url.toString();
 }
+
+function applyFilterAndReload(filterName, filterValue) {
+    const url = new URL(window.location.href);
+    url.searchParams.set(filterName, filterValue);
+    url.searchParams.set('page', 1); // Optionally reset to first page on filter
+    window.location.href = url.toString();
+}

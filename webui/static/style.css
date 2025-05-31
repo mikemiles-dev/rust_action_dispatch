@@ -6,7 +6,7 @@ body {
     height: 100%;
     align-items: left;
     justify-content: left;
-    background-color: #f1f1f1;
+    background-color: #e2e2e2;
     margin-left: 20px;
 }
 
@@ -32,6 +32,7 @@ body {
     top: 0;
     margin-top: 0px;
     width: 200px;
+    background: linear-gradient(180deg, #161b2b 0%, #232a45 100%);
     height: 100vh;
     background-color: rgb(22, 27, 43);
     padding: 10px;
