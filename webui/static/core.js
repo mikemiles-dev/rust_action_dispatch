@@ -59,10 +59,45 @@ function goToPage(pageNumber) {
 function applyFilterAndReload(filterName, filterValue, change_order = false, resetPage = false) {
     const url = new URL(window.location.href);
     url.searchParams.set(filterName, filterValue);
-    // Toggle 'order' query parameter between 'asc' and 'desc'
+
+    // Check for range_start and range_end input fields and set query params if not empty
+    const rangeStartInput = document.getElementById('range_start');
+    // Convert date string to epoch milliseconds if value is not empty
+    if (rangeStartInput && rangeStartInput.value.trim() !== '') {
+        const startDate = new Date(rangeStartInput.value.trim());
+        if (!isNaN(startDate.getTime())) {
+            let rangeStartMs = Date.UTC(
+                startDate.getUTCFullYear(),
+                startDate.getUTCMonth(),
+                startDate.getUTCDate(),
+                startDate.getUTCHours(),
+                startDate.getUTCMinutes(),
+                startDate.getUTCSeconds(),
+                startDate.getUTCMilliseconds()
+            ); // This is epoch milliseconds in UTC
+            url.searchParams.set('range_start', rangeStartMs);
+        }
+    }
+    const rangeEndInput = document.getElementById('range_end');
+    if (rangeEndInput && rangeEndInput.value.trim() !== '') {
+        const endDate = new Date(rangeEndInput.value.trim());
+        if (!isNaN(endDate.getTime())) {
+            let rangeEndMs = Date.UTC(
+                EndDate.getUTCFullYear(),
+                EndDate.getUTCMonth(),
+                EndDate.getUTCDate(),
+                EndDate.getUTCHours(),
+                EndDate.getUTCMinutes(),
+                EndDate.getUTCSeconds(),
+                EndDate.getUTCMilliseconds()
+            ); // This is epoch milliseconds in UTC
+            url.searchParams.set('range_end', rangeEndMs);
+        }
+    }
     if (resetPage) {
         url.searchParams.set('page', 1); // Reset to page 1 if specified
     }
+    // Toggle 'order' query parameter between 'asc' and 'desc'
     if (change_order) {
         const currentOrder = url.searchParams.get('order');
         if (currentOrder === 'asc') {

@@ -13,8 +13,8 @@
       <b>From:</b>
     </div>
     <div style="float: left; width: 220px">
-     <input type="datetime-local"><br>
-     <input type="datetime-local">
+     <input id="range_start" type="datetime-local"><br>
+     <input id="range_end" type="datetime-local">
     </div>
     <div style="float: left">
       <button class="btn" onclick="applyFilterAndReload('filter', '', true, true); return false;">Apply</button>
@@ -25,31 +25,20 @@
   <table>
     <thead>
       <tr>
-        <th {% if sort == 'agent_name' %}style="background-color: #999999"{% endif %}>
-          <a href="#" onclick="applyFilterAndReload('sort', 'agent_name', true);  return false;">
-            Agent Name
-          </a>
+      {% set columns = [
+        ('agent_name', 'Agent Name'),
+        ('job_name', 'Job Name'),
+        ('started_at', 'Started At'),
+        ('completed_at', 'Completed At'),
+        ('return_code', 'Return Code')
+      ] %}
+      {% for col, label in columns %}
+        <th {% if sort == col %}style="background-color: #999999"{% endif %}>
+        <a href="#" onclick="applyFilterAndReload('sort', '{{ col }}', true); return false;">
+          {{ label }}
+        </a>
         </th>
-        <th {% if sort == 'job_name' %}style="background-color: #999999"{% endif %}>
-          <a href="#" onclick="applyFilterAndReload('sort', 'job_name', true);  return false;">
-            Job Name
-          </a>
-        </th>
-        <th {% if sort == 'started_at' %}style="background-color: #999999"{% endif %}>
-          <a href="#" onclick="applyFilterAndReload('sort', 'started_at', true);  return false;">
-            Started At
-          </a>
-        </th>
-        <th {% if sort == 'completed_at' %}style="background-color: #999999"{% endif %}>
-          <a href="#" onclick="applyFilterAndReload('sort', 'completed_at', true);  return false;">
-            Completed At
-          </a>
-        </th>
-        <th {% if sort == 'return_code' %}style="background-color: #999999"{% endif %}>
-          <a href="#" onclick="applyFilterAndReload('sort', 'return_code', true);  return false;">
-            Return Code
-          </a>
-        </th>
+      {% endfor %}
       </tr>
     </thead>
     <tbody>
