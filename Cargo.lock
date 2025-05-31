@@ -3320,6 +3320,7 @@ dependencies = [
  "mongodb",
  "rocket",
  "rocket_dyn_templates",
+ "serde",
 ]
 
 [[package]]
