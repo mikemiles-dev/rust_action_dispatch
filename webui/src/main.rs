@@ -53,7 +53,7 @@ pub async fn runs(
         ],
         page,
         filter: filter.clone(),
-        sort,
+        sort: sort.clone(),
         order,
     };
 
@@ -69,6 +69,7 @@ pub async fn runs(
         "runs",
         context! {
             items: runs,
+            sort: sort.unwrap_or_default(),
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
             total_pages,

@@ -22,15 +22,34 @@
     </div>
   </div>
   
-
   <table>
     <thead>
       <tr>
-        <th><a href="#" onclick="applyFilterAndReload('sort', 'agent_name', true);  return false;">Agent Name</a></th>
-        <th><a href="#" onclick="applyFilterAndReload('sort', 'job_name', true);  return false;">Job Name</a></th>
-        <th><a href="#" onclick="applyFilterAndReload('sort', 'started_at', true);  return false;">Started At</a></th>
-        <th><a href="#" onclick="applyFilterAndReload('sort', 'completed_at', true);  return false;">Completed At</a></th>
-        <th><a href="#" onclick="applyFilterAndReload('sort', 'return_code', true);  return false;">Return Code</a></th>
+        <th {% if sort == 'agent_name' %}style="background-color: #999999"{% endif %}>
+          <a href="#" onclick="applyFilterAndReload('sort', 'agent_name', true);  return false;">
+            Agent Name
+          </a>
+        </th>
+        <th {% if sort == 'job_name' %}style="background-color: #999999"{% endif %}>
+          <a href="#" onclick="applyFilterAndReload('sort', 'job_name', true);  return false;">
+            Job Name
+          </a>
+        </th>
+        <th {% if sort == 'started_at' %}style="background-color: #999999"{% endif %}>
+          <a href="#" onclick="applyFilterAndReload('sort', 'started_at', true);  return false;">
+            Started At
+          </a>
+        </th>
+        <th {% if sort == 'completed_at' %}style="background-color: #999999"{% endif %}>
+          <a href="#" onclick="applyFilterAndReload('sort', 'completed_at', true);  return false;">
+            Completed At
+          </a>
+        </th>
+        <th {% if sort == 'return_code' %}style="background-color: #999999"{% endif %}>
+          <a href="#" onclick="applyFilterAndReload('sort', 'return_code', true);  return false;">
+            Return Code
+          </a>
+        </th>
       </tr>
     </thead>
     <tbody>
