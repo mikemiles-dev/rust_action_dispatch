@@ -52,12 +52,13 @@ pub fn index() -> Template {
     )
 }
 
-#[get("/runs?<page>&<filter>&<sort>")]
+#[get("/runs?<page>&<filter>&<sort>&<order>")]
 pub async fn runs(
     state: &State<WebState>,
     page: Option<u32>,
     filter: Option<String>,
     sort: Option<String>,
+    order: Option<String>,
 ) -> Template {
     let runs_future = { state.datastore.get_collection::<RunsV1>("runs") };
     let collection = runs_future.await.expect("Failed to get runs collection");
@@ -74,9 +75,19 @@ pub async fn runs(
         .expect("Failed to count documents");
 
     let total_pages = total_count.div_ceil(page_size as u64);
-
+    // Apply sorting if provided
+    let mut find_options = FindOptions::default();
+    if let Some(sort_field) = sort {
+        // Determine sort order: 1 for ascending, -1 for descending
+        let sort_order = match order.as_deref() {
+            Some("desc") => -1,
+            _ => 1,
+        };
+        find_options.sort = Some(bson::doc! { sort_field: sort_order });
+    }
     let mut cursor = collection
         .find(filter.clone())
+        .with_options(find_options)
         .skip(skip as u64)
         .limit(page_size as i64)
         .await

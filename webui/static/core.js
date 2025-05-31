@@ -59,6 +59,12 @@ function goToPage(pageNumber) {
 function applyFilterAndReload(filterName, filterValue) {
     const url = new URL(window.location.href);
     url.searchParams.set(filterName, filterValue);
-    url.searchParams.set('page', 1); // Optionally reset to first page on filter
+    // Toggle 'order' query parameter between 'asc' and 'desc'
+    const currentOrder = url.searchParams.get('order');
+    if (currentOrder === 'asc') {
+        url.searchParams.set('order', 'desc');
+    } else if (currentOrder === 'desc') {
+        url.searchParams.set('order', 'asc');
+    }
     window.location.href = url.toString();
 }
