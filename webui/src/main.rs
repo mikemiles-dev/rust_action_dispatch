@@ -36,8 +36,8 @@ pub fn index() -> Template {
 pub async fn runs(
     state: &State<WebState>,
     page: Option<u32>,
-    range_start: Option<String>,
-    range_end: Option<String>,
+    range_start: Option<u64>,
+    range_end: Option<u64>,
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,

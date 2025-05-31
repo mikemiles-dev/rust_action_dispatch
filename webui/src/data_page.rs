@@ -7,8 +7,8 @@ use crate::WebState;
 
 pub struct DataPageParams {
     pub collection: String,
-    pub range_start: Option<String>,
-    pub range_end: Option<String>,
+    pub range_start: Option<u64>,
+    pub range_end: Option<u64>,
     pub search_fields: Vec<String>,
     pub page: Option<u32>,
     pub filter: Option<String>,

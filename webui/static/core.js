@@ -34,6 +34,32 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+function setInputTime(element_id, utcEpochMs) {
+    // Exit early if the URL parameter with the same name as element_id is not set
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(element_id)) {
+        return;
+    }
+    // 1. Create a Date object from the UTC epoch milliseconds.
+    //    The Date constructor treats this as UTC milliseconds.
+    const date = new Date(utcEpochMs);
+
+    // 2. Format the Date object into the YYYY-MM-DDTHH:MM string for datetime-local.
+    //    Crucially, datetime-local expects the *local* date and time, so we use
+    //    the local methods of the Date object to get the components.
+    //    The browser then displays this local time to the user.
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    // 3. Set the value of the input element
+    document.getElementById(element_id).value = formattedDateTime;
+}
+
 function incrementPageAndReload() {
     const url = new URL(window.location.href);
     const currentPage = parseInt(url.searchParams.get('page')) || 1;
