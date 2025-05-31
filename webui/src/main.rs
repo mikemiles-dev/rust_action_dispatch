@@ -121,6 +121,7 @@ pub async fn runs(
             items: runs,
             total_pages,
             current_page: page,
+            filter: filter.unwrap_or_default(),
             page_name: "Runs",
         },
     )

@@ -56,15 +56,19 @@ function goToPage(pageNumber) {
     window.location = url.toString();
 }
 
-function applyFilterAndReload(filterName, filterValue) {
+function applyFilterAndReload(filterName, filterValue, change_order = false) {
     const url = new URL(window.location.href);
     url.searchParams.set(filterName, filterValue);
     // Toggle 'order' query parameter between 'asc' and 'desc'
-    const currentOrder = url.searchParams.get('order');
-    if (currentOrder === 'asc') {
-        url.searchParams.set('order', 'desc');
-    } else if (currentOrder === 'desc') {
-        url.searchParams.set('order', 'asc');
+    if (change_order) {
+        const currentOrder = url.searchParams.get('order');
+        if (currentOrder === 'asc') {
+            url.searchParams.set('order', 'desc');
+        } else if (currentOrder === 'desc') {
+            url.searchParams.set('order', 'asc');
+        } else {
+            url.searchParams.set('order', 'asc'); // Default to ascending if not set
+        }
     }
     window.location.href = url.toString();
 }

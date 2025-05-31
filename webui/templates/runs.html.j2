@@ -2,7 +2,7 @@
 
 {% block page %}
   <h1>Runs</h1>
-  <input onchange="applyFilterAndReload('filter', this.value); return false" class="search" name="search" autofocus>
+  <input onchange="applyFilterAndReload('filter', this.value, false); return false" class="search" name="search" value="{{ filter }}" autofocus>
 
   {% include "pagination" %}
 
@@ -11,8 +11,8 @@
       <tr>
         <th>Agent</th>
         <th>Job</th>
-        <th><a href="#" onclick="applyFilterAndReload('sort', 'started_at');  return false;">Started At</a></th>
-        <th><a href="#" onclick="applyFilterAndReload('sort', 'completed_at');  return false;">Completed At</a></th>
+        <th><a href="#" onclick="applyFilterAndReload('sort', 'started_at', true);  return false;">Started At</a></th>
+        <th><a href="#" onclick="applyFilterAndReload('sort', 'completed_at', true);  return false;">Completed At</a></th>
         <th>Return Code</th>
       </tr>
     </thead>
