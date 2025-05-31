@@ -2,7 +2,7 @@
 
 {% block page %}
   <h1>Runs</h1>
-  <input onchange="applyFilterAndReload('filter', this.value, false); return false" class="search" name="search" value="{{ filter }}" autofocus>
+  <input onchange="applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" autofocus>
 
   {% include "pagination" %}
 

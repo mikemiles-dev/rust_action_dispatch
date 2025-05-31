@@ -56,10 +56,13 @@ function goToPage(pageNumber) {
     window.location = url.toString();
 }
 
-function applyFilterAndReload(filterName, filterValue, change_order = false) {
+function applyFilterAndReload(filterName, filterValue, change_order = false, resetPage = false) {
     const url = new URL(window.location.href);
     url.searchParams.set(filterName, filterValue);
     // Toggle 'order' query parameter between 'asc' and 'desc'
+    if (resetPage) {
+        url.searchParams.set('page', 1); // Reset to page 1 if specified
+    }
     if (change_order) {
         const currentOrder = url.searchParams.get('order');
         if (currentOrder === 'asc') {
