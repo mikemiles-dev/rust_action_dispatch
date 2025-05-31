@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
-                hour12: false, // Use 24-hour format
+                hour12: true, // Use 12-hour format with AM/PM
                 timeZone: 'UTC', // Ensure it's UTC
                 timeZoneName: 'short' // e.g., "GMT" or "UTC"
             };
@@ -48,11 +48,11 @@ function setInputTime(element_id, utcEpochMs) {
     //    Crucially, datetime-local expects the *local* date and time, so we use
     //    the local methods of the Date object to get the components.
     //    The browser then displays this local time to the user.
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
 
     const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
 
@@ -93,32 +93,38 @@ function applyFilterAndReload(filterName, filterValue, change_order = false, res
         const startDate = new Date(rangeStartInput.value.trim());
         if (!isNaN(startDate.getTime())) {
             let rangeStartMs = Date.UTC(
-                startDate.getUTCFullYear(),
-                startDate.getUTCMonth(),
-                startDate.getUTCDate(),
-                startDate.getUTCHours(),
-                startDate.getUTCMinutes(),
-                startDate.getUTCSeconds(),
-                startDate.getUTCMilliseconds()
-            ); // This is epoch milliseconds in UTC
+                startDate.getFullYear(),
+                startDate.getMonth(),
+                startDate.getDate(),
+                startDate.getHours(),
+                startDate.getMinutes(),
+                startDate.getSeconds(),
+                startDate.getMilliseconds()
+            ); 
             url.searchParams.set('range_start', rangeStartMs);
         }
+    } else {
+        // If range_end is empty, remove it from the URL
+        url.searchParams.delete('range_start');
     }
     const rangeEndInput = document.getElementById('range_end');
     if (rangeEndInput && rangeEndInput.value.trim() !== '') {
         const endDate = new Date(rangeEndInput.value.trim());
         if (!isNaN(endDate.getTime())) {
             let rangeEndMs = Date.UTC(
-                endDate.getUTCFullYear(),
-                endDate.getUTCMonth(),
-                endDate.getUTCDate(),
-                endDate.getUTCHours(),
-                endDate.getUTCMinutes(),
-                endDate.getUTCSeconds(),
-                endDate.getUTCMilliseconds()
-            ); // This is epoch milliseconds in UTC
+                endDate.getFullYear(),
+                endDate.getMonth(),
+                endDate.getDate(),
+                endDate.getHours(),
+                endDate.getMinutes(),
+                endDate.getSeconds(),
+                endDate.getMilliseconds()
+            ); 
             url.searchParams.set('range_end', rangeEndMs);
         }
+    } else {
+        // If range_end is empty, remove it from the URL
+        url.searchParams.delete('range_end');
     }
     if (resetPage) {
         url.searchParams.set('page', 1); // Reset to page 1 if specified

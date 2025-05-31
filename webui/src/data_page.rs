@@ -68,6 +68,21 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             find_options.sort = Some(bson::doc! { sort_field: sort_order });
         }
 
+        if let Some(range_start) = &range_start {
+            bson_filter.insert(
+                "started_at",
+                bson::doc! { "$gte": DateTime::from_millis(*range_start as i64) },
+            );
+        }
+        if let Some(range_end) = &range_end {
+            bson_filter.insert(
+                "completed_at",
+                bson::doc! { "$lte": DateTime::from_millis(*range_end as i64) },
+            );
+        }
+
+        println!("Using filter: {:?}", bson_filter);
+
         // Count total documents for pagination
         let total_count = collection
             .count_documents(bson_filter.clone())
