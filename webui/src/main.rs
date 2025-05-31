@@ -44,8 +44,8 @@ pub async fn runs(
 ) -> Template {
     let data_page_params = DataPageParams {
         collection: "runs".to_string(),
-        range_start,
-        range_end,
+        range_start: range_start.clone(),
+        range_end: range_end.clone(),
         sort_fields: vec![
             "job_name".to_string(),
             "agent_name".to_string(),
