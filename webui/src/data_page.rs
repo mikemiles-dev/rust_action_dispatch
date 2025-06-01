@@ -1,4 +1,4 @@
-use bson::DateTime;
+use bson::{DateTime, doc};
 use futures::StreamExt;
 use mongodb::options::FindOptions;
 use rocket::State;
@@ -29,7 +29,7 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             collection,
             range_start,
             range_end,
-            search_fields: sort_fields,
+            search_fields,
             page,
             filter,
             sort,
@@ -38,7 +38,6 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
 
         let store_future = { state.datastore.get_collection::<T>(&collection) };
         let collection = store_future.await.expect("Failed to get runs collection");
-        let mut bson_filter = bson::doc! {};
 
         let page_size = 20;
         let page = page.unwrap_or(1);
@@ -46,27 +45,49 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
 
         // Apply sorting if provided
         let mut find_options = FindOptions::default();
-        if let Some(sort_field) = sort {
-            // Determine sort order: 1 for ascending, -1 for descending
-            // If a filter is provided, build a $or query to search all string fields
-            bson_filter = if let Some(ref filter) = filter {
-                // List the fields you want to search
-                let regex = bson::doc! { "$regex": filter, "$options": "i" };
-                let or_conditions: Vec<_> = sort_fields
-                    .iter()
-                    .map(|field| bson::doc! { field: regex.clone() })
-                    .collect();
-                bson::doc! { "$or": or_conditions }
-            } else {
-                bson::doc! {}
-            };
+        // Determine sort order: 1 for ascending, -1 for descending
+        // If a filter is provided, build a $or query to search all string fields
+        let mut bson_filter = if let Some(ref filter) = filter {
+            // List the fields you want to search
+            let regex = bson::doc! { "$regex": filter, "$options": "i" };
+            let mut or_conditions: Vec<_> = search_fields
+                .iter()
+                .map(|field| bson::doc! { field: regex.clone() })
+                .collect();
 
+            // 2. Attempt to parse the filter as a number (i32 or i64 for common cases)
+            if let Ok(num_val_i32) = filter.parse::<i32>() {
+                for field in search_fields.iter() {
+                    // Add a condition to match the numeric value
+                    or_conditions.push(doc! { field: num_val_i32 });
+                }
+            } else if let Ok(num_val_i64) = filter.parse::<i64>() {
+                for field in search_fields.iter() {
+                    // Add a condition to match the numeric value
+                    or_conditions.push(doc! { field: num_val_i64 });
+                }
+            }
+            // You could also consider f64 for floating-point numbers if applicable
+            else if let Ok(num_val_f64) = filter.parse::<f64>() {
+                for field in search_fields.iter() {
+                    or_conditions.push(doc! { field: num_val_f64 });
+                }
+            }
+
+            bson::doc! { "$or": or_conditions }
+        } else {
+            bson::doc! {}
+        };
+
+        if let Some(sort_field) = sort {
             let sort_order = match order.as_deref() {
                 Some("desc") => -1,
                 _ => 1,
             };
             find_options.sort = Some(bson::doc! { sort_field: sort_order });
         }
+
+        println!("BBB: filter: {:?}", filter);
 
         if let Some(range_start) = &range_start {
             bson_filter.insert(

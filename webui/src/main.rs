@@ -105,13 +105,13 @@ pub async fn agents(
         order,
     };
 
-    let runs_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
+    let agents_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
 
     let DataPage {
         items: runs,
         total_pages,
         current_page: page,
-    } = runs_page;
+    } = agents_page;
 
     Template::render(
         "agents",
