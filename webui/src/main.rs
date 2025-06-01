@@ -1,5 +1,6 @@
 mod data_page;
 
+use core_logic::datastore::agents::AgentV1;
 use core_logic::datastore::runs::RunsV1;
 use rocket::State;
 use rocket::fs::NamedFile;
@@ -80,6 +81,50 @@ pub async fn runs(
     )
 }
 
+#[get("/agents?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
+pub async fn agents(
+    state: &State<WebState>,
+    page: Option<u32>,
+    range_start: Option<u64>,
+    range_end: Option<u64>,
+    filter: Option<String>,
+    sort: Option<String>,
+    order: Option<String>,
+) -> Template {
+    let data_page_params = DataPageParams {
+        collection: "agents".to_string(),
+        range_start: range_start.clone(),
+        range_end: range_end.clone(),
+        search_fields: vec!["agent_name".to_string()],
+        page,
+        filter: filter.clone(),
+        sort: sort.clone(),
+        order,
+    };
+
+    let runs_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
+
+    let DataPage {
+        items: runs,
+        total_pages,
+        current_page: page,
+    } = runs_page;
+
+    Template::render(
+        "agents",
+        context! {
+            items: runs,
+            sort: sort.unwrap_or_default(),
+            range_start: range_start.unwrap_or_default(),
+            range_end: range_end.unwrap_or_default(),
+            total_pages,
+            current_page: page,
+            filter: filter.unwrap_or_default(),
+            page_name: "Agents",
+        },
+    )
+}
+
 #[rocket::get("/static/<path..>")]
 pub async fn static_files(path: PathBuf) -> Option<NamedFile> {
     let path = Path::new(relative!("static")).join(path);
@@ -113,7 +158,7 @@ async fn rocket() -> _ {
     rocket::build()
         .configure(rocket::Config::from(figment))
         .manage(web_state)
-        .mount("/", routes![index, runs])
+        .mount("/", routes![index, runs, agents])
         .mount("/", rocket::routes![static_files])
         .mount(
             "/",

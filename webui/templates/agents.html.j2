@@ -1,0 +1,34 @@
+{% extends "layout" %}
+
+{% block page %}
+  <h1>Runs</h1>
+
+  {% include "filter" %}
+
+  <table>
+    <thead>
+      <tr>
+      {% set columns = [
+        ('agent_name', 'Agent Name'),
+      ] %}
+      {% for col, label in columns %}
+        <th {% if sort == col %}style="background-color: #999999"{% endif %}>
+        <a href="#" onclick="applyFilterAndReload('sort', '{{ col }}', true); return false;">
+          {{ label }}
+        </a>
+        </th>
+      {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td>{{ item.agent_name }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "pagination" %}
+ 
+{% endblock %}
