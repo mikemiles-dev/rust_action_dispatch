@@ -3,29 +3,7 @@
 {% block page %}
   <h1>Runs</h1>
 
-  <div style="float: left">
-    <input onchange="applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" autofocus>
-  </div>
-
-  <div style="float: right;">
-    <div style="float: left; width: 50px; padding: 5px;">
-      <b>To:</b><br>
-      <b>From:</b>
-    </div>
-    <div style="float: left; width: 220px">
-     <input id="range_start" type="datetime-local"><br>
-     <input id="range_end" type="datetime-local">
-    </div>
-    <div style="float: left">
-      <button class="btn" onclick="applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;">Apply</button>
-      <button class="btn" onclick="window.location.href = window.location.pathname; return false;">Clear</button>
-    </div>
-  </div>
-  
-  <script>
-      setInputTime('range_start', {{ range_start }});
-      setInputTime('range_end', {{ range_end }});
-  </script>
+  {% include "filter" %}
 
   <table>
     <thead>

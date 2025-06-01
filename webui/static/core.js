@@ -1,9 +1,12 @@
+// Global configuration for time format preference
+window.prefer12HourFormat = true; // Set to true for 12-hour format, false for 24-hour format
+
 document.addEventListener('DOMContentLoaded', function() {
     // Select all elements with the 'utc-date' class
     const dateCells = document.querySelectorAll('.utc-date');
 
     dateCells.forEach(cell => {
-        const timestamp = parseInt(cell.dataset.timestamp); // Get the timestamp from data-timestamp
+        const timestamp = cell.dataset.timestamp && !isNaN(cell.dataset.timestamp) ? parseInt(cell.dataset.timestamp) : null; // Safely parse the timestamp
         if (!isNaN(timestamp)) {
             const date = new Date(timestamp); // Create a Date object from the milliseconds timestamp
 
@@ -15,6 +18,20 @@ document.addEventListener('DOMContentLoaded', function() {
             // const utcString = date.toISOString();
 
             // Option 3: More readable custom UTC format using Intl.DateTimeFormat
+            /**
+             * Options for formatting a date using Intl.DateTimeFormat.
+             *
+             * @typedef {Object} DateTimeFormatOptions
+             * @property {'numeric'} year - Display the year as a numeric value (e.g., "2024").
+             * @property {'short'} month - Display the month as a short string (e.g., "Jan").
+             * @property {'numeric'} day - Display the day as a numeric value (e.g., "01").
+             * @property {'2-digit'} hour - Display the hour as a two-digit value (e.g., "09").
+             * @property {'2-digit'} minute - Display the minute as a two-digit value (e.g., "05").
+             * @property {'2-digit'} second - Display the second as a two-digit value (e.g., "07").
+             * @property {boolean} hour12 - Whether to use 12-hour time format. Uses 24-hour format if false.
+             * @property {'UTC'} timeZone - The time zone to use for formatting. Set to 'UTC'.
+             * @property {'short'} timeZoneName - Display the time zone name in short form (e.g., "UTC").
+             */
             const options = {
                 year: 'numeric',
                 month: 'short',
@@ -22,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
-                hour12: true, // Use 12-hour format with AM/PM
+                hour12: window.prefer12HourFormat || false, // Use 12-hour format if configured, default to 24-hour
                 timeZone: 'UTC', // Ensure it's UTC
                 timeZoneName: 'short' // e.g., "GMT" or "UTC"
             };
@@ -82,6 +99,20 @@ function goToPage(pageNumber) {
     window.location = url.toString();
 }
 
+/**
+ * Applies a filter to the current page by updating the URL query parameters and reloads the page.
+ * Optionally handles date range filters, resets pagination, and toggles sort order.
+ *
+ * @param {string} filterName - The name of the filter to apply (used as the query parameter key).
+ * @param {string} filterValue - The value of the filter to apply.
+ * @param {boolean} [change_order=false] - If true, toggles the 'order' query parameter between 'asc' and 'desc'.
+ * @param {boolean} [resetPage=false] - If true, resets the 'page' query parameter to 1.
+ *
+ * @remarks
+ * - If input fields with IDs 'range_start' or 'range_end' are present and have values, their values are converted to epoch milliseconds and set as query parameters.
+ * - If the date range inputs are empty, their corresponding query parameters are removed.
+ * - The function updates the browser's location, causing a page reload with the new query parameters.
+ */
 function applyFilterAndReload(filterName, filterValue, change_order = false, resetPage = false) {
     const url = new URL(window.location.href);
     url.searchParams.set(filterName, filterValue);
