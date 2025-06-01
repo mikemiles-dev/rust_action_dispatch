@@ -26,15 +26,20 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
     /// Fetch a paginated list of items from a MongoDB collection
     pub async fn new(state: &State<WebState>, data_page_params: DataPageParams) -> DataPage<T> {
         let DataPageParams {
-            collection,
-            range_start,
-            range_end,
-            search_fields,
-            page,
-            filter,
-            sort,
-            order,
+            collection,    // Collection name
+            range_start,   // Optional start of the date range
+            range_end,     // Optional end of the date range
+            search_fields, // Fields to search in the filter
+            filter,        // Optional filter string
+            page,          // Page number for pagination
+            sort,          // Optional field to sort by
+            order,         // Optional order for sorting (asc/desc)
         } = data_page_params;
+
+        let filter = match filter {
+            Some(filter) if !filter.trim().is_empty() => Some(filter),
+            _ => None,
+        };
 
         let store_future = { state.datastore.get_collection::<T>(&collection) };
         let collection = store_future.await.expect("Failed to get runs collection");
@@ -49,10 +54,10 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         // If a filter is provided, build a $or query to search all string fields
         let mut bson_filter = if let Some(ref filter) = filter {
             // List the fields you want to search
-            let regex = bson::doc! { "$regex": filter, "$options": "i" };
+            let regex = doc! { "$regex": filter, "$options": "i" };
             let mut or_conditions: Vec<_> = search_fields
                 .iter()
-                .map(|field| bson::doc! { field: regex.clone() })
+                .map(|field| doc! { field: regex.clone() })
                 .collect();
 
             // 2. Attempt to parse the filter as a number (i32 or i64 for common cases)
@@ -74,9 +79,9 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
                 }
             }
 
-            bson::doc! { "$or": or_conditions }
+            doc! { "$or": or_conditions }
         } else {
-            bson::doc! {}
+            doc! {}
         };
 
         if let Some(sort_field) = sort {
@@ -84,21 +89,19 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
                 Some("desc") => -1,
                 _ => 1,
             };
-            find_options.sort = Some(bson::doc! { sort_field: sort_order });
+            find_options.sort = Some(doc! { sort_field: sort_order });
         }
-
-        println!("BBB: filter: {:?}", filter);
 
         if let Some(range_start) = &range_start {
             bson_filter.insert(
                 "started_at",
-                bson::doc! { "$gte": DateTime::from_millis(*range_start as i64) },
+                doc! { "$gte": DateTime::from_millis(*range_start as i64) },
             );
         }
         if let Some(range_end) = &range_end {
             bson_filter.insert(
                 "completed_at",
-                bson::doc! { "$lte": DateTime::from_millis(*range_end as i64) },
+                doc! { "$lte": DateTime::from_millis(*range_end as i64) },
             );
         }
 
