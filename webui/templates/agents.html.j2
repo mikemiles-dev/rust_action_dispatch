@@ -70,9 +70,9 @@
         <div class="agent-online-info">
           Last Ping: <span class="utc-date" data-timestamp="{{ item.last_ping['$date']['$numberLong'] }}">{{ item.last_ping['$date']['$numberLong'] }}</span><br><br>
           {% if item.status == "online" %}
-            <span class="agent-online">Online</span>
+            Online
           {% else %}
-            <span class="agent-offline">Offline</span>
+            Offline
           {% endif %}
         </div>
       </div>
