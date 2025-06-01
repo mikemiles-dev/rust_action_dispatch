@@ -16,9 +16,9 @@
         ('return_code', 'Return Code')
       ] %}
       {% for col, label in columns %}
-        <th {% if sort == col %}style="background-color: #999999"{% endif %}>
-        <a href="#" onclick="applyFilterAndReload('sort', '{{ col }}', true); return false;">
-          {{ label }}
+        <th>
+        <a href="#" class="sort_column" onclick="applyFilterAndReload('sort', '{{ col }}', true); return false;">
+          {{ label }}  {% if sort == col %} ^ {% endif %}
         </a>
         </th>
       {% endfor %}

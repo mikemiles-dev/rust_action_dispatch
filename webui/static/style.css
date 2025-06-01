@@ -3,6 +3,7 @@ body {
     margin: 0;
     padding: 0;
     font-family: 'Roboto', sans-serif;
+    font-size: 0.9em;
     height: 100%;
     align-items: left;
     justify-content: left;
@@ -58,6 +59,11 @@ body {
     max-width: 100%;
 }
 
+.sort_column {
+    color: #007bff;
+    text-decoration: none;
+}
+
 .nav-red {
     color: rgb(232, 91, 91);
 }
@@ -70,7 +76,7 @@ body {
 }
 
 .nav-items {
-    font-size: 0.9em;
+    font-size: 0.8em;
     margin-top: 40px;
     margin-left: 15px;
     color: rgb(219, 219, 219);
