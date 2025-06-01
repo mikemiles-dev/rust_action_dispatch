@@ -36,8 +36,8 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             order,
         } = data_page_params;
 
-        let runs_future = { state.datastore.get_collection::<T>(&collection) };
-        let collection = runs_future.await.expect("Failed to get runs collection");
+        let store_future = { state.datastore.get_collection::<T>(&collection) };
+        let collection = store_future.await.expect("Failed to get runs collection");
         let mut bson_filter = bson::doc! {};
 
         let page_size = 20;
@@ -97,17 +97,17 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             .skip(skip as u64)
             .limit(page_size as i64)
             .await
-            .expect("Failed to find runs");
-        let mut runs = Vec::new();
+            .expect("Failed to data");
+        let mut items = Vec::new();
         while let Some(result) = cursor.next().await {
             match result {
-                Ok(doc) => runs.push(T::from(doc)),
+                Ok(doc) => items.push(T::from(doc)),
                 Err(e) => eprintln!("Error reading run: {:?}", e),
             }
         }
 
         DataPage {
-            items: runs,
+            items,
             total_pages,
             current_page: page,
         }

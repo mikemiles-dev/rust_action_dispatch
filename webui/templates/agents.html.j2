@@ -1,7 +1,7 @@
 {% extends "layout" %}
 
 {% block page %}
-  <h1>Runs</h1>
+  <h1>Agents</h1>
 
   {% include "filter" %}
 
@@ -9,7 +9,13 @@
     <thead>
       <tr>
       {% set columns = [
-        ('agent_name', 'Agent Name'),
+        ('', ''),
+        ('name', 'Agent Name'),
+        ('hostname', 'Hostname'),
+        ('port', 'Port'),
+        ('last_ping', 'Last Ping'),
+        ('', ''),
+        ('', ''),
       ] %}
       {% for col, label in columns %}
         <th {% if sort == col %}style="background-color: #999999"{% endif %}>
@@ -23,7 +29,13 @@
     <tbody>
       {% for item in items %}
         <tr>
-          <td>{{ item.agent_name }}</td>
+          <td><input type="checkbox" name="selected_agents" value="{{ item.id }}"></td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.hostname }}</td>
+          <td>{{ item.port }}</td>
+          <td class="utc-date" data-timestamp="{{ item.last_ping['$date']['$numberLong'] }}">{{ item.last_ping['$date']['$numberLong'] }}</td>
+          <td><a href="#">Edit</a></td>
+          <td><a href="#">Delete</a></td>
         </tr>
       {% endfor %}
     </tbody>

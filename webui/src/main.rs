@@ -81,12 +81,11 @@ pub async fn runs(
     )
 }
 
-#[get("/agents?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
+#[get("/agents?<page>&<range_start>&<filter>&<sort>&<order>")]
 pub async fn agents(
     state: &State<WebState>,
     page: Option<u32>,
     range_start: Option<u64>,
-    range_end: Option<u64>,
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
@@ -94,8 +93,12 @@ pub async fn agents(
     let data_page_params = DataPageParams {
         collection: "agents".to_string(),
         range_start: range_start.clone(),
-        range_end: range_end.clone(),
-        search_fields: vec!["agent_name".to_string()],
+        range_end: None,
+        search_fields: vec![
+            "name".to_string(),
+            "hostname".to_string(),
+            "port".to_string(),
+        ],
         page,
         filter: filter.clone(),
         sort: sort.clone(),
@@ -116,7 +119,6 @@ pub async fn agents(
             items: runs,
             sort: sort.unwrap_or_default(),
             range_start: range_start.unwrap_or_default(),
-            range_end: range_end.unwrap_or_default(),
             total_pages,
             current_page: page,
             filter: filter.unwrap_or_default(),
