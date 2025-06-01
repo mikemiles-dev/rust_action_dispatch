@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(i32)]
 #[serde(from = "i32")]
+#[serde(into = "i32")]
 pub enum Status {
     Pending = 0,
     Running = 1,
@@ -27,6 +28,12 @@ impl From<i32> for Status {
                 Status::Error // Or Status::Pending, or panic!
             }
         }
+    }
+}
+
+impl From<Status> for i32 {
+    fn from(status: Status) -> Self {
+        status as i32
     }
 }
 

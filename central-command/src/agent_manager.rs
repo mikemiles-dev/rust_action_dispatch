@@ -38,7 +38,6 @@
 /// Most methods return `Result` types and log errors using the `tracing` crate.
 /// Errors are handled gracefully to ensure the manager continues running.
 use bson::{DateTime, Document, doc};
-use core_logic::datastore;
 use futures::stream::TryStreamExt;
 use tokio::net::TcpStream;
 use tokio::spawn;
@@ -55,7 +54,7 @@ use std::time::Duration;
 use core_logic::communications::{DispatchJob, Message};
 use core_logic::datastore::{
     Datastore,
-    agents::AgentV1,
+    agents::{AgentV1, Status as AgentStatus},
     jobs::{JobV1, Status},
 };
 
@@ -191,7 +190,7 @@ impl AgentManager {
                 Ok(_) => {
                     debug!("Ping sent to agent {} successfully!", agent.address);
                     // Update the agent's last ping in the database
-                    if let Err(e) = Self::update_agent_last_ping(datastore.clone(), agent).await {
+                    if let Err(e) = Self::update_agent_online(datastore.clone(), agent).await {
                         error!("Failed to update last ping for agent {}: {}", agent.name, e);
                     }
                 }
@@ -203,17 +202,43 @@ impl AgentManager {
         }
 
         for agent in agents_to_remove {
+            debug!("Removing agent {} due to failed ping.", agent.address);
+            // Update the agent's status to offline in the database
+            if let Err(e) = Self::update_agent_offline(datastore.clone(), &agent).await {
+                error!("Failed to update agent {} to offline: {}", agent.name, e);
+            }
             self.connected_agents.remove(&agent);
         }
     }
 
-    async fn update_agent_last_ping(
+    async fn update_agent_offline(
         datastore: Arc<Datastore>,
         agent: &ConnectedAgent,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let collection = datastore.get_collection::<AgentV1>("agents").await?;
         let filter = doc! { "name": &agent.name };
-        let update = doc! { "$set": { "last_ping": DateTime::now() } };
+        let update = doc! {
+            "$set": {
+                "last_ping": DateTime::now(),
+                "status": AgentStatus::Offline as i32, // Update status to Offline
+            }
+        };
+        collection.update_one(filter, update).await?;
+        Ok(())
+    }
+
+    async fn update_agent_online(
+        datastore: Arc<Datastore>,
+        agent: &ConnectedAgent,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let collection = datastore.get_collection::<AgentV1>("agents").await?;
+        let filter = doc! { "name": &agent.name };
+        let update = doc! {
+            "$set": {
+            "last_ping": DateTime::now(),
+            "status": AgentStatus::Online as i32, // Update status to Online
+            }
+        };
         collection.update_one(filter, update).await?;
         Ok(())
     }

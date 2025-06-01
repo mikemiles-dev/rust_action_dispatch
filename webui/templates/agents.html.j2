@@ -63,13 +63,13 @@
 
     {% set items = items | sort(attribute='name') %}
     {% for item in items %}
-      <div class="agent-card agent-online">
+      <div class="agent-card {% if item.status == 1 %}agent-online{% else %}agent-offline{% endif %}">
         {{ item.name }}<br>
         <img width="100px;" src="/agent.png"><br>
         <span class="agent-host-info">{{ item.hostname}}:{{ item.port}}</span><br>
         <div class="agent-online-info">
           Last Ping: <span class="utc-date" data-timestamp="{{ item.last_ping['$date']['$numberLong'] }}">{{ item.last_ping['$date']['$numberLong'] }}</span><br><br>
-          {% if item.status == "online" %}
+          {% if item.status == 1 %}
             Online
           {% else %}
             Offline

@@ -1,8 +1,5 @@
 use bson::{DateTime, oid::ObjectId};
-use mongodb::{
-    Collection,
-    bson::{Document, doc},
-};
+use mongodb::bson::{Document, doc};
 use serde::{Deserialize, Serialize};
 
 use std::error::Error;
