@@ -180,9 +180,22 @@ function applyFilterAndReload(filterName, filterValue, change_order = false, res
  * @returns {Promise<any>} - A promise that resolves with the parsed JSON data.
  */
 function getJsonData(url, params = {}) {
-    // Build query string from params object
-    const queryString = Object.keys(params).length
-        ? '?' + new URLSearchParams(params).toString()
+    // Remove keys with empty string values from params
+    const filteredParams = Object.fromEntries(
+        Object.entries(params).filter(([_, v]) => v !== '')
+    );
+
+    const currentUrlParams = Object.fromEntries(new URL(window.location.href).searchParams.entries());
+
+    if (!('range_start' in currentUrlParams)) {
+        delete filteredParams['range_start'];
+    }
+    if (!('range_end' in currentUrlParams)) {
+        delete filteredParams['range_end'];
+    }
+
+    const queryString = Object.keys(filteredParams).length
+        ? '?' + new URLSearchParams(filteredParams).toString()
         : '';
     const fullUrl = url + queryString;
 

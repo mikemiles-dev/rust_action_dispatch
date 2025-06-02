@@ -70,12 +70,9 @@ pub async fn runs(
     Template::render(
         "runs",
         context! {
-            //items: runs,
             sort: sort.unwrap_or_default(),
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
-            //total_pages,
-            //current_page: page,
             filter: filter.unwrap_or_default(),
             page_name: "Runs",
         },
@@ -92,8 +89,6 @@ pub async fn runs_data(
     sort: Option<String>,
     order: Option<String>,
 ) -> Json<serde_json::Value> {
-    println!("YYY {:?}", filter.clone());
-
     let data_page_params = DataPageParams {
         collection: "runs".to_string(),
         range_start: range_start.clone(),

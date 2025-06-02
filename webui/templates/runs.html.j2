@@ -9,13 +9,14 @@
   </div>
 
   <script>
-    renderRunsTable({ filter: "{{ filter }}" });
+    renderRunsTable({ filter: "{{ filter }}",
+                      sort: "{{ sort }}",
+                      range_start: "{{ range_start }}",
+                      range_end: "{{ range_end }}",
+      });
   </script>
 
-  {#
-
-
-  <table>
+  {# <table>
     <thead>
       <tr>
       {% set columns = [
