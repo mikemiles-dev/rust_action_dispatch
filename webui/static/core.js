@@ -231,7 +231,7 @@ function renderRunsTable(params = {}) {
 
             // Get table headers from object keys
             let table = '<table><thead><tr>';
-            table += `<th>Job Name</th>`;
+            table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"applyFilterAndReload('sort', 'job_name', true); return false;\">Job Name</a></th>`;
             table += `<th>Agent Name</th>`;
             table += `<th>Started At</th>`;
             table += `<th>Completed At</th>`;
