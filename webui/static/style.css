@@ -107,6 +107,10 @@ body {
     margin-bottom: 16px;
 }
 
+.search_wrapper {
+    display: flex; align-items: center; gap: 1em; 
+}
+
 .search_date {
     display: flex;
     align-items: center;

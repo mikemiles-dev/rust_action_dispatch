@@ -15,13 +15,14 @@ repository = "https://github.com/mikemiles-dev/rust_action_dispatch/"
 bson = { version = "2", features = ["chrono-0_4"] } # Needed for using chrono datetime in doc
 core-logic = { path = "core-logic" }
 chrono = { version = "0.4.23", features = ["serde"] }
+rocket = { version = "0.5.1" , features = ["json", "secrets", "tls"] }
 rocket_dyn_templates = { version = "0.2.0", features = ["tera", "handlebars", "minijinja"] }
 futures = { version = "0.3"}
 hostname = { version = "0.4.1" }
 log = { version = "0.4.27"  }
 mongodb = { version = "3.2.0" }
 serde = { version = "1.0.130", features = ["derive"] }
-rocket = { version = "0.5.1" }
+serde_json = { version = "1.0.130", features = ["preserve_order"] }
 tokio = { version = "1.45", features = ["full"] }
 tracing = { version = "0.1.41", features = ["log"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

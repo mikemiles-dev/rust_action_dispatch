@@ -16,3 +16,4 @@ mongodb.workspace = true
 rocket_dyn_templates.workspace = true
 rocket.workspace = true
 serde.workspace = true
+serde_json.workspace = true

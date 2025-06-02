@@ -1,7 +1,7 @@
 // Global configuration for time format preference
 window.prefer12HourFormat = true; // Set to true for 12-hour format, false for 24-hour format
 
-document.addEventListener('DOMContentLoaded', function() {
+function convertUtcDateElements() {
     // Select all elements with the 'utc-date' class
     const dateCells = document.querySelectorAll('.utc-date');
 
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cell.textContent = utcString; // Replace the cell's content with the formatted date
         }
     });
-});
+};
 
 function setInputTime(element_id, utcEpochMs) {
     // Exit early if the URL parameter with the same name as element_id is not set
@@ -172,4 +172,81 @@ function applyFilterAndReload(filterName, filterValue, change_order = false, res
         }
     }
     window.location.href = url.toString();
+}
+
+/**
+ * Makes an AJAX GET request to the specified URL and expects JSON data in response.
+ * @param {string} url - The URL to send the GET request to.
+ * @returns {Promise<any>} - A promise that resolves with the parsed JSON data.
+ */
+function getJsonData(url, params = {}) {
+    // Build query string from params object
+    const queryString = Object.keys(params).length
+        ? '?' + new URLSearchParams(params).toString()
+        : '';
+    const fullUrl = url + queryString;
+
+    return fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    });
+}
+
+function renderRunsTable(params = {}) {
+    // Append filter string to the URL if provided
+    const url = "/runs_data";
+    getJsonData(url, params)
+        .then(data => {
+            const container = document.getElementById("items");
+            if (!container) return;
+
+            data = data.items;
+
+            // Assume data is an array of objects
+            if (!Array.isArray(data) || data.length === 0) {
+                container.innerHTML = '<p>No data available.</p>';
+                return;
+            }
+
+            // Get table headers from object keys
+            let table = '<table><thead><tr>';
+            table += `<th>Job Name</th>`;
+            table += `<th>Agent Name</th>`;
+            table += `<th>Started At</th>`;
+            table += `<th>Completed At</th>`;
+            table += `<th>Return Code</th>`;
+            table += '</tr></thead><tbody>';
+
+            // Add table rows
+            data.forEach(item => {
+                let start_at_value = item["started_at"].$date.$numberLong;
+                let completed_at_value = item["completed_at"].$date.$numberLong;
+                table += '<tr>';
+                table += `<td>${item["job_name"]}</td>`;
+                table += `<td>${item["agent_name"]}</td>`;
+                table += `<td class="utc-date" data-timestamp="${start_at_value}">${start_at_value}</td>`;
+                table += `<td class="utc-date" data-timestamp="${completed_at_value}">${completed_at_value}</td>`;
+                table += `<td>${item["return_code"]}</td>`;
+                table += '</tr>';
+            });
+
+            table += '</tbody></table>';
+            container.innerHTML = table;
+
+            convertUtcDateElements();
+        })
+        .catch(error => {
+            const container = document.getElementById("items");
+            if (container) {
+                container.innerHTML = `<p>Error loading data: ${error.message}</p>`;
+            }
+        });
 }

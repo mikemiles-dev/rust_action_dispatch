@@ -5,6 +5,16 @@
 
   {% include "filter" %}
 
+  <div id="items">
+  </div>
+
+  <script>
+    renderRunsTable({ filter: "{{ filter }}" });
+  </script>
+
+  {#
+
+
   <table>
     <thead>
       <tr>
@@ -37,6 +47,6 @@
     </tbody>
   </table>
 
-  {% include "pagination" %}
+  {% include "pagination" %} #}
  
 {% endblock %}

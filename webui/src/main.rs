@@ -9,12 +9,13 @@ use rocket::get;
 use rocket::http::Status;
 use rocket::response::{Responder, status::Custom};
 use rocket::routes;
+use rocket::serde::json::Json;
 use rocket::{Catcher, Request, catcher};
-
 use rocket_dyn_templates::{Template, context, minijinja::Environment};
+use serde_json::json;
 
-use std::env;
 use std::path::{Path, PathBuf};
+use std::{collections, env};
 
 use core_logic::datastore::Datastore;
 use data_page::{DataPage, DataPageParams};
@@ -69,16 +70,58 @@ pub async fn runs(
     Template::render(
         "runs",
         context! {
-            items: runs,
+            //items: runs,
             sort: sort.unwrap_or_default(),
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
-            total_pages,
-            current_page: page,
+            //total_pages,
+            //current_page: page,
             filter: filter.unwrap_or_default(),
             page_name: "Runs",
         },
     )
+}
+
+#[get("/runs_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
+pub async fn runs_data(
+    state: &State<WebState>,
+    page: Option<u32>,
+    range_start: Option<u64>,
+    range_end: Option<u64>,
+    filter: Option<String>,
+    sort: Option<String>,
+    order: Option<String>,
+) -> Json<serde_json::Value> {
+    println!("YYY {:?}", filter.clone());
+
+    let data_page_params = DataPageParams {
+        collection: "runs".to_string(),
+        range_start: range_start.clone(),
+        range_end: range_end.clone(),
+        search_fields: vec![
+            "job_name".to_string(),
+            "agent_name".to_string(),
+            "return_code".to_string(),
+        ],
+        page,
+        filter: filter.clone(),
+        sort: sort.clone(),
+        order,
+    };
+
+    let runs_page: DataPage<RunsV1> = DataPage::new(state, data_page_params).await;
+
+    let DataPage {
+        items: runs,
+        total_pages,
+        current_page: page,
+    } = runs_page;
+
+    Json(json!({
+        "items": runs,
+        "total_pages": total_pages,
+        "current_page": page,
+    }))
 }
 
 #[get("/agents?<page>&<range_start>&<filter>&<sort>&<order>")]
@@ -105,13 +148,13 @@ pub async fn agents(
         order,
     };
 
-    let agents_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
+    let runs_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
 
     let DataPage {
         items: runs,
         total_pages,
         current_page: page,
-    } = agents_page;
+    } = runs_page;
 
     Template::render(
         "agents",
@@ -160,7 +203,7 @@ async fn rocket() -> _ {
     rocket::build()
         .configure(rocket::Config::from(figment))
         .manage(web_state)
-        .mount("/", routes![index, runs, agents])
+        .mount("/", routes![index, runs, agents, runs_data])
         .mount("/", rocket::routes![static_files])
         .mount(
             "/",
