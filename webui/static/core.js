@@ -1,5 +1,15 @@
 // Global configuration for time format preference
-window.prefer12HourFormat = true;
+window.config = {
+    _prefer12HourFormat: true,
+
+    set prefer12HourFormat(value) {
+        if (typeof value === 'boolean') {
+            this._prefer12HourFormat = value;
+        } else {
+            console.warn('Invalid value for prefer12HourFormat. Must be a boolean.');
+        }
+    }
+};
 
 class DateTimeUtils {
     static formatUtcDate(timestamp) {
@@ -12,7 +22,7 @@ class DateTimeUtils {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
-            hour12: window.prefer12HourFormat || false,
+            hour12: window.config.prefer12HourFormat,
             timeZone: 'UTC',
             timeZoneName: 'short'
         };
@@ -20,10 +30,17 @@ class DateTimeUtils {
     }
 
     static convertUtcDateElements() {
-        document.querySelectorAll('.utc-date').forEach(cell => {
+        if (!DateTimeUtils.utcDateElements) {
+            DateTimeUtils.utcDateElements = document.querySelectorAll('.utc-date');
+        }
+        DateTimeUtils.utcDateElements.forEach(cell => {
             const timestamp = cell.dataset.timestamp;
             cell.textContent = DateTimeUtils.formatUtcDate(timestamp);
         });
+    }
+
+    static refreshUtcDateElementsCache() {
+        DateTimeUtils.utcDateElements = document.querySelectorAll('.utc-date');
     }
 
     static setInputTime(elementId, utcEpochMs) {
@@ -41,6 +58,7 @@ class DateTimeUtils {
 }
 
 class Pagination {
+    // Updates the URL with the specified page number and navigates to the new URL.
     static setPage(pageNumber) {
         const url = new URL(window.location.href);
         url.searchParams.set('page', pageNumber);
@@ -65,40 +83,44 @@ class Pagination {
 }
 
 class FilterUtils {
+
     static applyFilterAndReload(filterName, filterValue, changeOrder = false, resetPage = false) {
         const url = new URL(window.location.href);
-        url.searchParams.set(filterName, filterValue);
-
-        // Handle range_start
-        const rangeStartInput = document.getElementById('range_start');
-        if (rangeStartInput && rangeStartInput.value.trim() !== '') {
-            const startDate = new Date(rangeStartInput.value.trim());
-            if (!isNaN(startDate.getTime())) {
-                url.searchParams.set('range_start', startDate.getTime());
-            }
-        } else {
-            url.searchParams.delete('range_start');
-        }
-
-        // Handle range_end
-        const rangeEndInput = document.getElementById('range_end');
-        if (rangeEndInput && rangeEndInput.value.trim() !== '') {
-            const endDate = new Date(rangeEndInput.value.trim());
-            if (!isNaN(endDate.getTime())) {
-                url.searchParams.set('range_end', endDate.getTime());
-            }
-        } else {
-            url.searchParams.delete('range_end');
-        }
-
-        if (resetPage) url.searchParams.set('page', 1);
-
-        if (changeOrder) {
-            const currentOrder = url.searchParams.get('order');
-            url.searchParams.set('order', currentOrder === 'asc' ? 'desc' : 'asc');
-        }
-
+        FilterUtils.setFilter(url, filterName, filterValue);
+        FilterUtils.handleRangeInputs(url);
+        if (resetPage) FilterUtils.resetPage(url);
+        if (changeOrder) FilterUtils.toggleOrder(url);
         window.location.href = url.toString();
+    }
+
+    static setFilter(url, filterName, filterValue) {
+        url.searchParams.set(filterName, filterValue);
+    }
+
+    static handleRangeInputs(url) {
+        FilterUtils.handleRangeInput(url, 'range_start');
+        FilterUtils.handleRangeInput(url, 'range_end');
+    }
+
+    static handleRangeInput(url, rangeKey) {
+        const rangeInput = document.getElementById(rangeKey);
+        if (rangeInput && rangeInput.value.trim() !== '') {
+            const date = new Date(rangeInput.value.trim());
+            if (!isNaN(date.getTime())) {
+                url.searchParams.set(rangeKey, date.getTime());
+            }
+        } else {
+            url.searchParams.delete(rangeKey);
+        }
+    }
+
+    static resetPage(url) {
+        url.searchParams.set('page', 1);
+    }
+
+    static toggleOrder(url) {
+        const currentOrder = url.searchParams.get('order');
+        url.searchParams.set('order', currentOrder === 'asc' ? 'desc' : 'asc');
     }
 }
 
@@ -118,11 +140,10 @@ class AjaxUtils {
         const fullUrl = url + queryString;
 
         return fetch(fullUrl, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
+            method: 'GET'
         })
         .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}, URL: ${fullUrl}`);
             return response.json();
         });
     }
