@@ -8,6 +8,8 @@
   <div id="items">
   </div>
 
+  <script src="/static/runs.js"></script>
+
   <script>
     renderRunsTable({ filter: "{{ filter }}",
                       sort: "{{ sort }}",
@@ -17,38 +19,5 @@
       });
   </script>
 
-  {# <table>
-    <thead>
-      <tr>
-      {% set columns = [
-        ('agent_name', 'Agent Name'),
-        ('job_name', 'Job Name'),
-        ('started_at', 'Started At'),
-        ('completed_at', 'Completed At'),
-        ('return_code', 'Return Code')
-      ] %}
-      {% for col, label in columns %}
-        <th>
-        <a href="#" class="sort_column" onclick="applyFilterAndReload('sort', '{{ col }}', true); return false;">
-          {{ label }}  {% if sort == col %} ^ {% endif %}
-        </a>
-        </th>
-      {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-        <tr>
-          <td>{{ item.agent_name }}</td>
-          <td>{{ item.job_name }}</td>
-          <td class="utc-date" data-timestamp="{{ item.started_at['$date']['$numberLong'] }}">{{ item.started_at['$date']['$numberLong'] }}</td>
-          <td class="utc-date" data-timestamp="{{ item.completed_at['$date']['$numberLong'] }}">{{ item.completed_at['$date']['$numberLong'] }}</td>
-          <td>{{ item.return_code }}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  {% include "pagination" %} #}
  
 {% endblock %}
