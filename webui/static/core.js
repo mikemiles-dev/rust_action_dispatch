@@ -255,6 +255,11 @@ function renderRunsTable(params = {}) {
             container.innerHTML = table;
 
             convertUtcDateElements();
+
+            // Set input time for specific elements if they exist            
+
+            // Auto-refresh the table every 10 seconds
+            setTimeout(() => renderRunsTable(params), 10000);
         })
         .catch(error => {
             const container = document.getElementById("items");
