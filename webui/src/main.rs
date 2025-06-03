@@ -15,7 +15,7 @@ use rocket_dyn_templates::{Template, context, minijinja::Environment};
 use serde_json::json;
 
 use std::path::{Path, PathBuf};
-use std::{collections, env};
+use std::env;
 
 use core_logic::datastore::Datastore;
 use data_page::{DataPage, DataPageParams};
@@ -36,41 +36,18 @@ pub fn index() -> Template {
 
 #[get("/runs?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
 pub async fn runs(
-    state: &State<WebState>,
-    page: Option<u32>,
     range_start: Option<u64>,
     range_end: Option<u64>,
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
+    page: Option<u32>
 ) -> Template {
-    let data_page_params = DataPageParams {
-        collection: "runs".to_string(),
-        range_start: range_start.clone(),
-        range_end: range_end.clone(),
-        search_fields: vec![
-            "job_name".to_string(),
-            "agent_name".to_string(),
-            "return_code".to_string(),
-        ],
-        page,
-        filter: filter.clone(),
-        sort: sort.clone(),
-        order: order.clone(),
-    };
-
-    let runs_page: DataPage<RunsV1> = DataPage::new(state, data_page_params).await;
-
-    let DataPage {
-        items: runs,
-        total_pages,
-        current_page: page,
-    } = runs_page;
-
     Template::render(
         "runs",
         context! {
             sort: sort.unwrap_or_default(),
+            page: page.unwrap_or(1),
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
             filter: filter.unwrap_or_default(),

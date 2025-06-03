@@ -30,9 +30,7 @@ class DateTimeUtils {
     }
 
     static convertUtcDateElements() {
-        if (!DateTimeUtils.utcDateElements) {
-            DateTimeUtils.utcDateElements = document.querySelectorAll('.utc-date');
-        }
+        DateTimeUtils.utcDateElements = document.querySelectorAll('.utc-date');
         DateTimeUtils.utcDateElements.forEach(cell => {
             const timestamp = cell.dataset.timestamp;
             cell.textContent = DateTimeUtils.formatUtcDate(timestamp);

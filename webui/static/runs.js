@@ -17,10 +17,10 @@ function renderRunsTable(params = {}) {
             // Get table headers from object keys
             let table = '<table><thead><tr>';
             table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'job_name', true); return false;\">Job Name</a></th>`;
-            table += `<th>Agent Name</th>`;
-            table += `<th>Started At</th>`;
-            table += `<th>Completed At</th>`;
-            table += `<th>Return Code</th>`;
+            table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'agent_name', true); return false;\">Agent Name</a></th>`;
+            table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'started_at', true); return false;\">Started At</a></th>`;
+            table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'completed_at', true); return false;\">Completed At</a></th>`;
+            table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'completed_at', true); return false;\">Return Code</a></th>`;
             table += '</tr></thead><tbody>';
 
             // Add table rows
@@ -37,11 +37,14 @@ function renderRunsTable(params = {}) {
             });
 
             table += '</tbody></table>';
-            container.innerHTML = table;
+
+            pagination = "<div id=\"pagination-controls\" style=\"margin-top: 20px;\"></div>";
+
+            container.innerHTML = table + pagination;
+
+            renderPaginationControls(data.page || 1);
 
             DateTimeUtils.convertUtcDateElements();
-
-            // Set input time for specific elements if they exist            
 
             // Auto-refresh the table every 10 seconds
             setTimeout(() => renderRunsTable(params), 10000);
@@ -52,4 +55,33 @@ function renderRunsTable(params = {}) {
                 container.innerHTML = `<p>Error loading data: ${error.message}</p>`;
             }
         });
+}
+
+function renderPaginationControls(currentPage = 1) {
+    const container = document.getElementById("pagination-controls");
+    if (!container) {
+        // Create the container if it doesn't exist
+        const newContainer = document.createElement("div");
+        newContainer.id = "pagination-controls";
+        newContainer.style.marginTop = "20px";
+        document.body.appendChild(newContainer);
+    }
+
+    const controls = document.getElementById("pagination-controls");
+    controls.innerHTML = `
+        <button id="prev-page" ${currentPage <= 1 ? "disabled" : ""}>Previous</button>
+        <span>Page ${currentPage}</span>
+        <button id="next-page">Next</button>
+    `;
+
+    document.getElementById("prev-page").onclick = function() {
+        if (currentPage > 1) {
+            renderRunsTable({ page: currentPage - 1 });
+            renderPaginationControls(currentPage - 1);
+        }
+    };
+    document.getElementById("next-page").onclick = function() {
+        renderRunsTable({ page: currentPage + 1 });
+        renderPaginationControls(currentPage + 1);
+    };
 }
