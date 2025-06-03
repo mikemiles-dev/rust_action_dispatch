@@ -6,6 +6,9 @@ function renderRunsTable(params = {}) {
             const container = document.getElementById("items");
             if (!container) return;
 
+            let current_page = data.current_page;
+            let total_pages = data.total_pages;
+
             data = data.items;
 
             // Assume data is an array of objects
@@ -38,11 +41,11 @@ function renderRunsTable(params = {}) {
 
             table += '</tbody></table>';
 
-            pagination = "<div id=\"pagination-controls\" style=\"margin-top: 20px;\"></div>";
+            pagination = "<div class=\"pagination_controls\" id=\"pagination-controls\" style=\"margin-top: 20px;\"></div>";
 
             container.innerHTML = table + pagination;
 
-            renderPaginationControls(data.page || 1);
+            renderPaginationControls(current_page, total_pages);
 
             DateTimeUtils.convertUtcDateElements();
 
@@ -55,33 +58,4 @@ function renderRunsTable(params = {}) {
                 container.innerHTML = `<p>Error loading data: ${error.message}</p>`;
             }
         });
-}
-
-function renderPaginationControls(currentPage = 1) {
-    const container = document.getElementById("pagination-controls");
-    if (!container) {
-        // Create the container if it doesn't exist
-        const newContainer = document.createElement("div");
-        newContainer.id = "pagination-controls";
-        newContainer.style.marginTop = "20px";
-        document.body.appendChild(newContainer);
-    }
-
-    const controls = document.getElementById("pagination-controls");
-    controls.innerHTML = `
-        <button id="prev-page" ${currentPage <= 1 ? "disabled" : ""}>Previous</button>
-        <span>Page ${currentPage}</span>
-        <button id="next-page">Next</button>
-    `;
-
-    document.getElementById("prev-page").onclick = function() {
-        if (currentPage > 1) {
-            renderRunsTable({ page: currentPage - 1 });
-            renderPaginationControls(currentPage - 1);
-        }
-    };
-    document.getElementById("next-page").onclick = function() {
-        renderRunsTable({ page: currentPage + 1 });
-        renderPaginationControls(currentPage + 1);
-    };
 }

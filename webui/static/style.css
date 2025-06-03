@@ -135,10 +135,6 @@ body {
     color: #888;
 }
 
-.pagination_prev {
-    flex: 1; text-align: left;
-}
-
 .btn {
     color: #007bff;
     text-decoration: none;
@@ -162,11 +158,16 @@ body {
     flex: 1; text-align: right;
 }
 
-.pagination_center {
-    flex: 1; text-align: center;
+.pagination_prev {
+    flex: 1; text-align: left;
 }
 
-.pagination_wrapper {
+.pagination_center {
+    flex: 1; text-align: center;
+    font-size: 1.2em;
+}
+
+.pagination_controls {
     display: flex; align-items: center; justify-content: center; margin: 20px 0;
 }
 

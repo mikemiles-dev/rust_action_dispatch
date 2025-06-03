@@ -8,12 +8,14 @@
   <div id="items">
   </div>
 
+  <script src="/static/pagination.js"></script>
   <script src="/static/runs.js"></script>
 
   <script>
     renderRunsTable({ filter: "{{ filter }}",
                       sort: "{{ sort }}",
                       order: "{{ order }}",
+                      page: "{{ page }}",
                       range_start: "{{ range_start }}",
                       range_end: "{{ range_end }}",
       });

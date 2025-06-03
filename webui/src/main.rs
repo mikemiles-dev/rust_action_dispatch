@@ -14,8 +14,8 @@ use rocket::{Catcher, Request, catcher};
 use rocket_dyn_templates::{Template, context, minijinja::Environment};
 use serde_json::json;
 
-use std::path::{Path, PathBuf};
 use std::env;
+use std::path::{Path, PathBuf};
 
 use core_logic::datastore::Datastore;
 use data_page::{DataPage, DataPageParams};
@@ -41,7 +41,7 @@ pub async fn runs(
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
-    page: Option<u32>
+    page: Option<u32>,
 ) -> Template {
     Template::render(
         "runs",
