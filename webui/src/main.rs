@@ -57,6 +57,48 @@ pub async fn runs(
     )
 }
 
+#[get("/agents_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
+pub async fn agents_data(
+    state: &State<WebState>,
+    page: Option<u32>,
+    range_start: Option<u64>,
+    range_end: Option<u64>,
+    filter: Option<String>,
+    sort: Option<String>,
+    order: Option<String>,
+) -> Json<serde_json::Value> {
+    let data_page_params = DataPageParams {
+        collection: "agents".to_string(),
+        range_start: range_start.clone(),
+        range_end: range_end.clone(),
+        search_fields: vec![
+            "name".to_string(),
+            "hostname".to_string(),
+            "last_ping".to_string(),
+            "status".to_string(),
+            "port".to_string(),
+        ],
+        page,
+        filter: filter.clone(),
+        sort: sort.clone(),
+        order,
+    };
+
+    let runs_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
+
+    let DataPage {
+        items: runs,
+        total_pages,
+        current_page: page,
+    } = runs_page;
+
+    Json(json!({
+        "items": runs,
+        "total_pages": total_pages,
+        "current_page": page,
+    }))
+}
+
 #[get("/runs_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
 pub async fn runs_data(
     state: &State<WebState>,
@@ -176,7 +218,7 @@ async fn rocket() -> _ {
     rocket::build()
         .configure(rocket::Config::from(figment))
         .manage(web_state)
-        .mount("/", routes![index, runs, agents, runs_data])
+        .mount("/", routes![index, runs, agents, runs_data, agents_data])
         .mount("/", rocket::routes![static_files])
         .mount(
             "/",
