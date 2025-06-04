@@ -1,31 +1,4 @@
-
-
-
-
-//   
-//     {% if not items %}
-//       <div class="agent-card">No agents found</div>
-//     {% endif %}
-
-//     {% set items = items | sort(attribute='name') %}
-//     {% for item in items %}
-//       <div class="agent-card {% if item.status == 1 %}agent-online{% else %}agent-offline{% endif %}">
-//         {{ item.name }}<br>
-//         <img width="100px;" src="/agent.png"><br>
-//         <span class="agent-host-info">{{ item.hostname}}:{{ item.port}}</span><br>
-//         <div class="agent-online-info">
-//           Last Ping: <span class="utc-date" data-timestamp="{{ item.last_ping['$date']['$numberLong'] }}">{{ item.last_ping['$date']['$numberLong'] }}</span><br><br>
-//           {% if item.status == 1 %}
-//             Online
-//           {% else %}
-//             Offline
-//           {% endif %}
-//         </div>
-//       </div>
-//     {% endfor %}
-//   </div>
-
- function renderAgentsTable(params = {}) {
+function renderAgentsTable(params = {}) {
     // Append filter string to the URL if provided
     const url = "/agents_data";
     AjaxUtils.getJsonData(url, params)
@@ -54,7 +27,7 @@
                     div += ' agent-offline';       
                 }
                 div += '">';
-                div += item["name"]; + '<br>';
+                div += item["name"] + '<br>';
                 div += `<img width="100px;" src="/agent.png"><br>`;
                 div += `<span class="agent-host-info">${item["hostname"]}:${item["port"]}</span><br>`;
                 div += '<div class="agent-online-info">';
@@ -79,7 +52,7 @@
             DateTimeUtils.convertUtcDateElements();
 
             // Auto-refresh the table every 10 seconds
-            setTimeout(() => renderAgentsTable(params), 10000);
+            //setTimeout(() => renderAgentsTable(params), 10000);
         })
         .catch(error => {
             const container = document.getElementById("items");
