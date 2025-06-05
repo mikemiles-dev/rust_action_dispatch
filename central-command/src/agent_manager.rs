@@ -170,6 +170,10 @@ impl AgentManager {
                 }
                 Err(e) => {
                     error!("Error connecting to agent {}: {}", agent.address, e);
+                    let datastore = self.datastore.clone();
+                    if let Err(agent_error) = Self::update_agent_offline(datastore, &agent).await {
+                        error!("Failed to update agent {} to offline: {}", agent.name, agent_error);
+                    }
                 }
             }
         }
