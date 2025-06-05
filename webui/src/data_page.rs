@@ -3,8 +3,11 @@ use futures::StreamExt;
 use mongodb::options::FindOptions;
 use rocket::State;
 
+use std::collections::HashMap;
+
 use crate::WebState;
 
+#[derive(Default)]
 pub struct DataPageParams {
     pub collection: String,
     pub range_start: Option<u64>,
@@ -12,6 +15,7 @@ pub struct DataPageParams {
     pub search_fields: Vec<String>,
     pub page: Option<u32>,
     pub filter: Option<String>,
+    pub additional_filters: Option<HashMap<String, String>>,
     pub sort: Option<String>,
     pub order: Option<String>,
 }
@@ -35,8 +39,22 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         let page = params.page.unwrap_or(1);
         let skip = page.saturating_sub(1).saturating_mul(page_size);
 
-        let filter_doc = Self::build_filter(&params);
         let find_options = Self::build_find_options(&params);
+
+        let mut filter_doc = Self::build_filter(
+            params.filter.unwrap_or_default(),
+            params.search_fields,
+            params.range_start,
+            params.range_end,
+        );
+
+        if let Some(additional_filters) = &params.additional_filters {
+            for (key, value) in additional_filters {
+                let addtional_filter_doc =
+                    Self::build_filter(value.clone(), vec![key.clone()], None, None);
+                filter_doc.extend(addtional_filter_doc);
+            }
+        }
 
         let total_count = collection
             .count_documents(filter_doc.clone())
@@ -67,45 +85,44 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         }
     }
 
-    fn build_filter(params: &DataPageParams) -> bson::Document {
-        let mut filter = if let Some(ref filter_str) = params.filter {
-            if !filter_str.trim().is_empty() {
-                let regex = doc! { "$regex": filter_str, "$options": "i" };
-                let mut or_conditions: Vec<_> = params
-                    .search_fields
-                    .iter()
-                    .map(|field| doc! { field: regex.clone() })
-                    .collect();
+    fn build_filter(
+        filter_str: String,
+        search_fields: Vec<String>,
+        range_start: Option<u64>,
+        range_end: Option<u64>,
+    ) -> bson::Document {
+        let mut filter = if !filter_str.trim().is_empty() {
+            let regex = doc! { "$regex": &filter_str, "$options": "i" };
+            let mut or_conditions: Vec<_> = search_fields
+                .iter()
+                .map(|field| doc! { field: regex.clone() })
+                .collect();
 
-                if let Ok(num_val_i32) = filter_str.parse::<i32>() {
-                    for field in &params.search_fields {
-                        or_conditions.push(doc! { field: num_val_i32 });
-                    }
-                } else if let Ok(num_val_i64) = filter_str.parse::<i64>() {
-                    for field in &params.search_fields {
-                        or_conditions.push(doc! { field: num_val_i64 });
-                    }
-                } else if let Ok(num_val_f64) = filter_str.parse::<f64>() {
-                    for field in &params.search_fields {
-                        or_conditions.push(doc! { field: num_val_f64 });
-                    }
+            if let Ok(num_val_i32) = filter_str.parse::<i32>() {
+                for field in &search_fields {
+                    or_conditions.push(doc! { field: num_val_i32 });
                 }
-
-                doc! { "$or": or_conditions }
-            } else {
-                doc! {}
+            } else if let Ok(num_val_i64) = filter_str.parse::<i64>() {
+                for field in &search_fields {
+                    or_conditions.push(doc! { field: num_val_i64 });
+                }
+            } else if let Ok(num_val_f64) = filter_str.parse::<f64>() {
+                for field in &search_fields {
+                    or_conditions.push(doc! { field: num_val_f64 });
+                }
             }
+            doc! { "$or": or_conditions }
         } else {
             doc! {}
         };
 
-        if let Some(range_start) = params.range_start {
+        if let Some(range_start) = range_start {
             filter.insert(
                 "started_at",
                 doc! { "$gte": DateTime::from_millis(range_start as i64) },
             );
         }
-        if let Some(range_end) = params.range_end {
+        if let Some(range_end) = range_end {
             filter.insert(
                 "completed_at",
                 doc! { "$lte": DateTime::from_millis(range_end as i64) },

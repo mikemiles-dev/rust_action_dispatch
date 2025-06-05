@@ -54,6 +54,7 @@ pub async fn runs_data(
         filter: filter.clone(),
         sort: sort.clone(),
         order,
+        ..Default::default()
     };
 
     let runs_page: DataPage<RunsV1> = DataPage::new(state, data_page_params).await;
