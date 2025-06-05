@@ -125,7 +125,7 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         let mut items = Vec::new();
         while let Some(result) = cursor.next().await {
             match result {
-                Ok(doc) => items.push(T::from(doc)),
+                Ok(doc) => items.push(doc),
                 Err(e) => eprintln!("Error reading run: {:?}", e),
             }
         }

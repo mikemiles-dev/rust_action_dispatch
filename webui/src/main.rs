@@ -1,24 +1,22 @@
+mod agents;
 mod data_page;
+mod runs;
 
-use core_logic::datastore::agents::AgentV1;
-use core_logic::datastore::runs::RunsV1;
-use rocket::State;
 use rocket::fs::NamedFile;
 use rocket::fs::{FileServer, relative};
 use rocket::get;
 use rocket::http::Status;
 use rocket::response::{Responder, status::Custom};
 use rocket::routes;
-use rocket::serde::json::Json;
 use rocket::{Catcher, Request, catcher};
 use rocket_dyn_templates::{Template, context, minijinja::Environment};
-use serde_json::json;
 
 use std::env;
 use std::path::{Path, PathBuf};
 
+use agents::{agents_data, agents_page};
 use core_logic::datastore::Datastore;
-use data_page::{DataPage, DataPageParams};
+use runs::{runs_data, runs_page};
 
 pub struct WebState {
     datastore: Datastore,
@@ -30,157 +28,6 @@ pub fn index() -> Template {
         "index",
         context! {
             title: "Dashboard",
-        },
-    )
-}
-
-#[get("/runs?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
-pub async fn runs(
-    range_start: Option<u64>,
-    range_end: Option<u64>,
-    filter: Option<String>,
-    sort: Option<String>,
-    order: Option<String>,
-    page: Option<u32>,
-) -> Template {
-    Template::render(
-        "runs",
-        context! {
-            sort: sort.unwrap_or_default(),
-            page: page.unwrap_or(1),
-            range_start: range_start.unwrap_or_default(),
-            range_end: range_end.unwrap_or_default(),
-            filter: filter.unwrap_or_default(),
-            order: order.unwrap_or_default(),
-            page_name: "Runs",
-        },
-    )
-}
-
-#[get("/agents_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
-pub async fn agents_data(
-    state: &State<WebState>,
-    page: Option<u32>,
-    range_start: Option<u64>,
-    range_end: Option<u64>,
-    filter: Option<String>,
-    sort: Option<String>,
-    order: Option<String>,
-) -> Json<serde_json::Value> {
-    let data_page_params = DataPageParams {
-        collection: "agents".to_string(),
-        range_start: range_start.clone(),
-        range_end: range_end.clone(),
-        search_fields: vec![
-            "name".to_string(),
-            "hostname".to_string(),
-            "last_ping".to_string(),
-            "status".to_string(),
-            "port".to_string(),
-        ],
-        page,
-        filter: filter.clone(),
-        sort: sort.clone(),
-        order,
-    };
-
-    let runs_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
-
-    let DataPage {
-        items: runs,
-        total_pages,
-        current_page: page,
-    } = runs_page;
-
-    Json(json!({
-        "items": runs,
-        "total_pages": total_pages,
-        "current_page": page,
-    }))
-}
-
-#[get("/runs_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
-pub async fn runs_data(
-    state: &State<WebState>,
-    page: Option<u32>,
-    range_start: Option<u64>,
-    range_end: Option<u64>,
-    filter: Option<String>,
-    sort: Option<String>,
-    order: Option<String>,
-) -> Json<serde_json::Value> {
-    let data_page_params = DataPageParams {
-        collection: "runs".to_string(),
-        range_start: range_start.clone(),
-        range_end: range_end.clone(),
-        search_fields: vec![
-            "job_name".to_string(),
-            "agent_name".to_string(),
-            "return_code".to_string(),
-        ],
-        page,
-        filter: filter.clone(),
-        sort: sort.clone(),
-        order,
-    };
-
-    let runs_page: DataPage<RunsV1> = DataPage::new(state, data_page_params).await;
-
-    let DataPage {
-        items: runs,
-        total_pages,
-        current_page: page,
-    } = runs_page;
-
-    Json(json!({
-        "items": runs,
-        "total_pages": total_pages,
-        "current_page": page,
-    }))
-}
-
-#[get("/agents?<page>&<range_start>&<filter>&<sort>&<order>")]
-pub async fn agents(
-    state: &State<WebState>,
-    page: Option<u32>,
-    range_start: Option<u64>,
-    filter: Option<String>,
-    sort: Option<String>,
-    order: Option<String>,
-) -> Template {
-    let data_page_params = DataPageParams {
-        collection: "agents".to_string(),
-        range_start: range_start.clone(),
-        range_end: None,
-        search_fields: vec![
-            "name".to_string(),
-            "hostname".to_string(),
-            "port".to_string(),
-        ],
-        page,
-        filter: filter.clone(),
-        sort: sort.clone(),
-        order,
-    };
-
-    let runs_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
-
-    let DataPage {
-        items: runs,
-        total_pages,
-        current_page: page,
-    } = runs_page;
-
-    Template::render(
-        "agents",
-        context! {
-            items: runs,
-            sort: sort.unwrap_or_default(),
-            range_start: range_start.unwrap_or_default(),
-            total_pages,
-            current_page: page,
-            filter: filter.unwrap_or_default(),
-            page_name: "Agents",
         },
     )
 }
@@ -218,7 +65,10 @@ async fn rocket() -> _ {
     rocket::build()
         .configure(rocket::Config::from(figment))
         .manage(web_state)
-        .mount("/", routes![index, runs, agents, runs_data, agents_data])
+        .mount(
+            "/",
+            routes![index, runs_page, agents_page, runs_data, agents_data],
+        )
         .mount("/", rocket::routes![static_files])
         .mount(
             "/",
