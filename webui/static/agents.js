@@ -20,40 +20,39 @@ function renderAgentsTable(params = {}) {
             // Assume data is an array of objects
             if (!Array.isArray(data) || data.length === 0) {
                 container.innerHTML = '<p>No data available.</p>';
-                return;
-            }
+            } else {
+                let div = '<div class="agents-list">';
 
-            let div = '<div class="agents-list">';
+                data.forEach(item => {
+                    div += '<div class="agent-card';
+                    if(item["status"] == 1) {
+                        div += ' agent-online';
+                    } else {
+                        div += ' agent-offline';       
+                    }
+                    div += '">';
+                    div += item["name"] + '<br>';
+                    div += `<img width="100px;" src="/agent.png"><br>`;
+                    div += `<span class="agent-host-info">${item["hostname"]}:${item["port"]}</span><br>`;
+                    div += '<div class="agent-online-info">';
+                    div += `Last Ping: <span class="utc-date" data-timestamp="${item["last_ping"]["$date"]["$numberLong"]}">${item["last_ping"]["$date"]["$numberLong"]}</span><br><br>`;
+                    if (item["status"] == 1) {
+                        div += 'Online';
+                    } else {
+                        div += 'Offline';
+                    }
+                    div += '</div>'; // Close agent-online-info
+                    div += '</div>';
+                });
 
-            data.forEach(item => {
-                div += '<div class="agent-card';
-                if(item["status"] == 1) {
-                    div += ' agent-online';
-                } else {
-                    div += ' agent-offline';       
-                }
-                div += '">';
-                div += item["name"] + '<br>';
-                div += `<img width="100px;" src="/agent.png"><br>`;
-                div += `<span class="agent-host-info">${item["hostname"]}:${item["port"]}</span><br>`;
-                div += '<div class="agent-online-info">';
-                div += `Last Ping: <span class="utc-date" data-timestamp="${item["last_ping"]["$date"]["$numberLong"]}">${item["last_ping"]["$date"]["$numberLong"]}</span><br><br>`;
-                if (item["status"] == 1) {
-                    div += 'Online';
-                } else {
-                    div += 'Offline';
-                }
-                div += '</div>'; // Close agent-online-info
                 div += '</div>';
-            });
 
-            div += '</div>';
+                pagination = "<div class=\"pagination_controls\" id=\"pagination-controls\" style=\"margin-top: 20px;\"></div>";
 
-            pagination = "<div class=\"pagination_controls\" id=\"pagination-controls\" style=\"margin-top: 20px;\"></div>";
+                container.innerHTML = div + pagination;
 
-            container.innerHTML = div + pagination;
-
-            renderPaginationControls(current_page, total_pages);
+                renderPaginationControls(current_page, total_pages);
+            }
 
             DateTimeUtils.convertUtcDateElements();
 
