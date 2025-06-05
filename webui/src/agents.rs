@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use crate::WebState;
 use crate::data_page::{DataPage, DataPageParams};
-use core_logic::datastore::agents::AgentV1;
+use core_logic::datastore::agents::{AgentV1, Status};
 
 #[get("/agents?<page>&<range_start>&<filter>&<sort>&<status_filter>")]
 pub async fn agents_page(
@@ -18,6 +18,10 @@ pub async fn agents_page(
     status_filter: Option<String>,
     sort: Option<String>,
 ) -> Template {
+    let status_filter = match status_filter {
+        Some(f) => f,
+        None => (Status::Online as u8).to_string(),
+    };
     Template::render(
         "agents",
         context! {

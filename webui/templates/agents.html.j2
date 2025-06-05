@@ -11,12 +11,10 @@
   <a href="#" class="btn" onclick="window.location.href = '/agents/add'; return false;">Add Agent</a>
   <a href="#" class="btn" onclick="window.location.href = '/agents/delete'; return false;">Delete Displayed</a>
 
-  <input type="radio" id="all_filter" name="agent_status_filter" value="-1" checked>
-  <label for="all_filter">All</label>
-  <input type="radio" id="offline_filter" name="agent_status_filter" value="0">
-  <label for="offline_filter">Offline</label>
-  <input type="radio" id="online_filter" name="agent_status_filter" value="1">
+  <input onchange="applyStatusFilter(1);" type="radio" id="online_filter" name="agent_status_filter" value="1" {% if status_filter is defined and status_filter == '1' %}checked{% endif %}>
   <label for="online_filter">Online</label>
+  <input onchange="applyStatusFilter(0);" type="radio" id="offline_filter" name="agent_status_filter" value="0" {% if status_filter is defined and status_filter == '0' %}checked{% endif %}> 
+  <label for="offline_filter">Offline</label>
   <br><br>
 
   <div id="items">
@@ -30,6 +28,7 @@
                         sort: "{{ sort }}",
                         order: "{{ order }}",
                         page: "{{ page }}",
+                        status_filter: "{{ status_filter }}",
                         range_start: "{{ range_start }}",
                         range_end: "{{ range_end }}",
       });
