@@ -31,6 +31,7 @@ pub async fn agents_page(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 #[get("/agents_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>&<status_filter>")]
 pub async fn agents_data(
     state: &State<WebState>,
