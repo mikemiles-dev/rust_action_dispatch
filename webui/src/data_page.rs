@@ -24,109 +24,39 @@ pub struct DataPage<T> {
 
 impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
     /// Fetch a paginated list of items from a MongoDB collection
-    pub async fn new(state: &State<WebState>, data_page_params: DataPageParams) -> DataPage<T> {
-        let DataPageParams {
-            collection,    // Collection name
-            range_start,   // Optional start of the date range
-            range_end,     // Optional end of the date range
-            search_fields, // Fields to search in the filter
-            filter,        // Optional filter string
-            page,          // Page number for pagination
-            sort,          // Optional field to sort by
-            order,         // Optional order for sorting (asc/desc)
-        } = data_page_params;
-
-        let filter = match filter {
-            Some(filter) if !filter.trim().is_empty() => Some(filter),
-            _ => None,
-        };
-
-        let store_future = { state.datastore.get_collection::<T>(&collection) };
-        let collection = store_future.await.expect("Failed to get runs collection");
+    pub async fn new(state: &State<WebState>, params: DataPageParams) -> DataPage<T> {
+        let collection = state
+            .datastore
+            .get_collection::<T>(&params.collection)
+            .await
+            .expect("Failed to get collection");
 
         let page_size = 20;
-        let page = page.unwrap_or(1);
+        let page = params.page.unwrap_or(1);
         let skip = page.saturating_sub(1).saturating_mul(page_size);
 
-        // Apply sorting if provided
-        let mut find_options = FindOptions::default();
-        // Determine sort order: 1 for ascending, -1 for descending
-        // If a filter is provided, build a $or query to search all string fields
-        let mut bson_filter = if let Some(ref filter) = filter {
-            // List the fields you want to search
-            let regex = doc! { "$regex": filter, "$options": "i" };
-            let mut or_conditions: Vec<_> = search_fields
-                .iter()
-                .map(|field| doc! { field: regex.clone() })
-                .collect();
+        let filter_doc = Self::build_filter(&params);
+        let find_options = Self::build_find_options(&params);
 
-            // 2. Attempt to parse the filter as a number (i32 or i64 for common cases)
-            if let Ok(num_val_i32) = filter.parse::<i32>() {
-                for field in search_fields.iter() {
-                    // Add a condition to match the numeric value
-                    or_conditions.push(doc! { field: num_val_i32 });
-                }
-            } else if let Ok(num_val_i64) = filter.parse::<i64>() {
-                for field in search_fields.iter() {
-                    // Add a condition to match the numeric value
-                    or_conditions.push(doc! { field: num_val_i64 });
-                }
-            }
-            // You could also consider f64 for floating-point numbers if applicable
-            else if let Ok(num_val_f64) = filter.parse::<f64>() {
-                for field in search_fields.iter() {
-                    or_conditions.push(doc! { field: num_val_f64 });
-                }
-            }
-
-            doc! { "$or": or_conditions }
-        } else {
-            doc! {}
-        };
-
-        if let Some(sort_field) = sort {
-            let sort_order = match order.as_deref() {
-                Some("desc") => -1,
-                _ => 1,
-            };
-            find_options.sort = Some(doc! { sort_field: sort_order });
-        }
-
-        if let Some(range_start) = &range_start {
-            bson_filter.insert(
-                "started_at",
-                doc! { "$gte": DateTime::from_millis(*range_start as i64) },
-            );
-        }
-        if let Some(range_end) = &range_end {
-            bson_filter.insert(
-                "completed_at",
-                doc! { "$lte": DateTime::from_millis(*range_end as i64) },
-            );
-        }
-
-        println!("Using filter: {:?}", bson_filter);
-
-        // Count total documents for pagination
         let total_count = collection
-            .count_documents(bson_filter.clone())
+            .count_documents(filter_doc.clone())
             .await
             .expect("Failed to count documents");
-
         let total_pages = total_count.div_ceil(page_size as u64);
 
         let mut cursor = collection
-            .find(bson_filter.clone())
+            .find(filter_doc)
             .with_options(find_options)
             .skip(skip as u64)
             .limit(page_size as i64)
             .await
-            .expect("Failed to data");
+            .expect("Failed to fetch data");
+
         let mut items = Vec::new();
         while let Some(result) = cursor.next().await {
             match result {
                 Ok(doc) => items.push(doc),
-                Err(e) => eprintln!("Error reading run: {:?}", e),
+                Err(e) => eprintln!("Error reading document: {:?}", e),
             }
         }
 
@@ -135,5 +65,65 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             total_pages,
             current_page: page,
         }
+    }
+
+    fn build_filter(params: &DataPageParams) -> bson::Document {
+        let mut filter = if let Some(ref filter_str) = params.filter {
+            if !filter_str.trim().is_empty() {
+                let regex = doc! { "$regex": filter_str, "$options": "i" };
+                let mut or_conditions: Vec<_> = params
+                    .search_fields
+                    .iter()
+                    .map(|field| doc! { field: regex.clone() })
+                    .collect();
+
+                if let Ok(num_val_i32) = filter_str.parse::<i32>() {
+                    for field in &params.search_fields {
+                        or_conditions.push(doc! { field: num_val_i32 });
+                    }
+                } else if let Ok(num_val_i64) = filter_str.parse::<i64>() {
+                    for field in &params.search_fields {
+                        or_conditions.push(doc! { field: num_val_i64 });
+                    }
+                } else if let Ok(num_val_f64) = filter_str.parse::<f64>() {
+                    for field in &params.search_fields {
+                        or_conditions.push(doc! { field: num_val_f64 });
+                    }
+                }
+
+                doc! { "$or": or_conditions }
+            } else {
+                doc! {}
+            }
+        } else {
+            doc! {}
+        };
+
+        if let Some(range_start) = params.range_start {
+            filter.insert(
+                "started_at",
+                doc! { "$gte": DateTime::from_millis(range_start as i64) },
+            );
+        }
+        if let Some(range_end) = params.range_end {
+            filter.insert(
+                "completed_at",
+                doc! { "$lte": DateTime::from_millis(range_end as i64) },
+            );
+        }
+
+        filter
+    }
+
+    fn build_find_options(params: &DataPageParams) -> FindOptions {
+        let mut options = FindOptions::default();
+        if let Some(ref sort_field) = params.sort {
+            let sort_order = match params.order.as_deref() {
+                Some("desc") => -1,
+                _ => 1,
+            };
+            options.sort = Some(doc! { sort_field: sort_order });
+        }
+        options
     }
 }
