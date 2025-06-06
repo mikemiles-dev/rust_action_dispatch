@@ -63,7 +63,7 @@ function renderAgentsTable(params = {}) {
             DateTimeUtils.convertUtcDateElements();
 
             // Auto-refresh the table every 10 seconds
-            setTimeout(() => renderAgentsTable(params), 10000);
+            setTime(() => renderAgentsTable(params), 10000);
         })
         .catch(error => {
             const container = document.getElementById("items");
