@@ -49,6 +49,7 @@ impl JobDispatcher {
                     job_name: job_info.job_name.clone(),
                     agent_name: get_agent_name(),
                     return_code: job_info.return_code,
+                    data: [0u8; 1000000].to_vec(), // Placeholder for job data
                 });
                 let mut writer = central_command_writer.lock().await;
                 writer.write(message).await;
@@ -96,6 +97,7 @@ impl JobDispatcher {
                 job_name: job_name.clone(),
                 agent_name: get_agent_name(),
                 return_code,
+                data: vec![],
             };
 
             if let Err(e) = sender.send(job_complete).await {

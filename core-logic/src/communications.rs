@@ -63,6 +63,7 @@ pub struct JobComplete {
     pub job_name: String,
     pub agent_name: String,
     pub return_code: i32,
+    pub data: Vec<u8>,
 }
 
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
@@ -136,6 +137,7 @@ impl From<&ArchivedMessage> for Message {
                     job_name,
                     agent_name,
                     return_code: archived.return_code.into(),
+                    data: archived.data.to_vec(), // Convert from archived to owned Vec<u8>
                 })
             }
         }

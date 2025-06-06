@@ -183,49 +183,59 @@ impl CommandReceiver {
         datastore_client: Arc<Datastore>,
         peer_addr: std::net::SocketAddr,
     ) -> Result<(), Box<dyn Error>> {
-        let mut buffer = [0; CHUNKS_SIZE];
-        let mut received_data = Vec::new();
         loop {
-            match stream.read(&mut buffer).await {
-                Ok(0) => {
+            // Read the 4-byte message length prefix
+            let mut len_buf = [0u8; 4];
+            if let Err(e) = stream.read_exact(&mut len_buf).await {
+                if e.kind() == std::io::ErrorKind::UnexpectedEof {
                     info!("Connection with {} closed by peer.", peer_addr);
-                    break; // Connection closed by the client
-                }
-                Ok(n) => {
-                    received_data.extend_from_slice(&buffer[..n]);
-                    if n < CHUNKS_SIZE {
-                        let message: Message = received_data.clone().try_into()?;
-
-                        // Todo add validation (length check?) for message
-
-                        // Send an OK reply to the agent after job complete
-                        if let Err(e) = stream.write_all(b"OK").await {
-                            error!("Failed to send OK reply to {}: {}", peer_addr, e);
-                        }
-
-                        match message {
-                            Message::Ping => {
-                                debug!("Ping received from {}", peer_addr);
-                            }
-                            Message::RegisterAgent(register_agent) => {
-                                Self::register_agent(datastore_client.clone(), register_agent).await
-                            }
-                            Message::JobComplete(job_complete) => {
-                                Self::complete_agent_run(
-                                    datastore_client.clone(),
-                                    job_complete,
-                                    peer_addr,
-                                )
-                                .await?;
-                            }
-                            _ => (),
-                        }
-                    }
-                }
-                Err(e) => {
-                    error!("Failed to read from connection {}: {}", peer_addr, e);
+                    break;
+                } else {
+                    error!("Failed to read message length from {}: {}", peer_addr, e);
                     break;
                 }
+            }
+            let msg_len = u32::from_be_bytes(len_buf) as usize;
+            if msg_len == 0 {
+                warn!("Received zero-length message from {}", peer_addr);
+                continue;
+            }
+
+            // Read the message body in chunks until the full message is received
+            let mut received_data = Vec::with_capacity(msg_len);
+            while received_data.len() < msg_len {
+                let to_read = std::cmp::min(CHUNKS_SIZE, msg_len - received_data.len());
+                let mut buffer = vec![0u8; to_read];
+                let n = stream.read(&mut buffer).await?;
+                if n == 0 {
+                    info!(
+                        "Connection with {} closed while reading message.",
+                        peer_addr
+                    );
+                    return Ok(());
+                }
+                received_data.extend_from_slice(&buffer[..n]);
+            }
+
+            let message: Message = received_data.clone().try_into()?;
+
+            // Send an OK reply to the agent after job complete
+            if let Err(e) = stream.write_all(b"OK").await {
+                error!("Failed to send OK reply to {}: {}", peer_addr, e);
+            }
+
+            match message {
+                Message::Ping => {
+                    debug!("Ping received from {}", peer_addr);
+                }
+                Message::RegisterAgent(register_agent) => {
+                    Self::register_agent(datastore_client.clone(), register_agent).await
+                }
+                Message::JobComplete(job_complete) => {
+                    Self::complete_agent_run(datastore_client.clone(), job_complete, peer_addr)
+                        .await?;
+                }
+                _ => (),
             }
         }
         Ok(())

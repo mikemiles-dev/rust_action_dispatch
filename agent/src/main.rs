@@ -174,8 +174,29 @@ impl CentralCommandWriter {
             }
         };
 
+        // Prepare the length prefix (4 bytes, big-endian)
+        let msg_len = serialized.len() as u32;
+        let len_bytes = msg_len.to_be_bytes();
+
         // Write until we get exactly "OK" from the central command
         loop {
+            // Write the 4-byte length prefix
+            // Retry writing the length prefix until it succeeds or reconnection fails
+            loop {
+                match self.stream.write_all(&len_bytes).await {
+                    Ok(_) => break, // Success, proceed
+                    Err(e) => {
+                        error!("Error writing length prefix to central command: {}", e);
+                        if let Err(e) = self.reconnect_to_central_command().await {
+                            error!("Failed to reconnect to central command: {}", e);
+                            break; // Give up if reconnection fails
+                        }
+                        // After reconnection, try again
+                        continue;
+                    }
+                }
+            }
+
             // Write the serialized message in chunks to avoid large buffer issues
             let mut offset = 0;
             while offset < serialized.len() {
@@ -189,6 +210,9 @@ impl CentralCommandWriter {
                 }
                 offset = end;
             }
+            // if let Err(e) = self.stream.shutdown().await {
+            //     eprintln!("Client: Failed to shutdown write half: {}", e);
+            // }
             let mut reply = [0; 2];
             if let Err(e) = self.stream.read_exact(&mut reply).await {
                 error!("Error reading reply from central command: {}", e);
@@ -206,6 +230,9 @@ impl CentralCommandWriter {
                 break;
             }
         }
+        // if let Err(e) = self.reconnect_to_central_command().await {
+        //     error!("Failed to reconnect to central command: {}", e);
+        // }
 
         debug!("Sent message to central command: {:?}", message);
     }
