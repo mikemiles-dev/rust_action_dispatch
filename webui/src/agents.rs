@@ -10,10 +10,11 @@ use crate::WebState;
 use crate::data_page::{DataPage, DataPageParams};
 use core_logic::datastore::agents::AgentV1;
 
-#[get("/agents?<page>&<range_start>&<filter>&<sort>&<status_filter>")]
+#[get("/agents?<page>&<range_start>&<range_end>&<filter>&<sort>&<status_filter>")]
 pub async fn agents_page(
     page: Option<u32>,
     range_start: Option<u64>,
+    range_end: Option<u64>, // range_end is not used in agents_page, but required for data_page
     filter: Option<String>,
     status_filter: Option<String>,
     sort: Option<String>,
@@ -23,6 +24,7 @@ pub async fn agents_page(
         context! {
             sort: sort.unwrap_or_default(),
             range_start: range_start.unwrap_or_default(),
+            range_end: range_end.unwrap_or_default(),
             current_page: page,
             filter: filter.unwrap_or_default(),
             page_name: "Agents",
@@ -45,6 +47,8 @@ pub async fn agents_data(
 ) -> Json<serde_json::Value> {
     let data_page_params = DataPageParams {
         collection: "agents".to_string(),
+        range_end_key: Some("last_ping".to_string()), // for sorting by last_ping
+        range_start_key: Some("last_ping".to_string()), // for sorting by last_ping
         range_start,
         range_end,
         search_fields: vec![
