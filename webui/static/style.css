@@ -105,7 +105,6 @@ body {
 }
 
 .nav-item {
-    border-radius: 6px;
     transition: background-color 0.2s, color 0.2s;
 }
 
