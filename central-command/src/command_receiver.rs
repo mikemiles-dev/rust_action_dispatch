@@ -74,6 +74,7 @@ impl CommandReceiver {
         let db = datastore_client.client.database("rust-action-dispatch");
         let agents_collection = db.collection::<Document>("agents");
         let agent: AgentV1 = register_agent.into();
+
         let bson_agent = match bson::to_document(&agent) {
             Ok(doc) => doc,
             Err(e) => {
@@ -180,7 +181,9 @@ impl CommandReceiver {
         datastore_client: Arc<Datastore>,
         peer_addr: std::net::SocketAddr,
     ) -> Result<(), Box<dyn Error>> {
-        let mut buffer = [0; 65536];
+        const CHUNKS_SIZE: usize = 4096; // Size of each message chunk
+        let mut buffer = [0; CHUNKS_SIZE];
+        let mut received_data = Vec::new();
         loop {
             match stream.read(&mut buffer).await {
                 Ok(0) => {
@@ -188,32 +191,34 @@ impl CommandReceiver {
                     break; // Connection closed by the client
                 }
                 Ok(n) => {
-                    let received = buffer[..n].to_vec();
-                    let message: Message = received.try_into()?;
+                    received_data.extend_from_slice(&buffer[..n]);
+                    if n < CHUNKS_SIZE {
+                        let message: Message = received_data.clone().try_into()?;
 
-                    // Todo add validation (length check?) for message
+                        // Todo add validation (length check?) for message
 
-                    // Send an OK reply to the agent after job complete
-                    if let Err(e) = stream.write_all(b"OK").await {
-                        error!("Failed to send OK reply to {}: {}", peer_addr, e);
-                    }
+                        // Send an OK reply to the agent after job complete
+                        if let Err(e) = stream.write_all(b"OK").await {
+                            error!("Failed to send OK reply to {}: {}", peer_addr, e);
+                        }
 
-                    match message {
-                        Message::Ping => {
-                            debug!("Ping received from {}", peer_addr);
+                        match message {
+                            Message::Ping => {
+                                debug!("Ping received from {}", peer_addr);
+                            }
+                            Message::RegisterAgent(register_agent) => {
+                                Self::register_agent(datastore_client.clone(), register_agent).await
+                            }
+                            Message::JobComplete(job_complete) => {
+                                Self::complete_agent_run(
+                                    datastore_client.clone(),
+                                    job_complete,
+                                    peer_addr,
+                                )
+                                .await?;
+                            }
+                            _ => (),
                         }
-                        Message::RegisterAgent(register_agent) => {
-                            Self::register_agent(datastore_client.clone(), register_agent).await
-                        }
-                        Message::JobComplete(job_complete) => {
-                            Self::complete_agent_run(
-                                datastore_client.clone(),
-                                job_complete,
-                                peer_addr,
-                            )
-                            .await?;
-                        }
-                        _ => (),
                     }
                 }
                 Err(e) => {

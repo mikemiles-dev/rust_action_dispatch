@@ -174,11 +174,19 @@ impl CentralCommandWriter {
 
         // Write until we get exactly "OK" from the central command
         loop {
-            if let Err(e) = self.stream.write_all(&serialized).await {
-                error!("Error writing to central command: {}", e);
-                if let Err(e) = self.reconnect_to_central_command().await {
-                    error!("Failed to reconnect to central command: {}", e);
+            // Write the serialized message in chunks to avoid large buffer issues
+            let mut offset = 0;
+            let chunk_size = 4096;
+            while offset < serialized.len() {
+                let end = std::cmp::min(offset + chunk_size, serialized.len());
+                if let Err(e) = self.stream.write_all(&serialized[offset..end]).await {
+                    error!("Error writing to central command: {}", e);
+                    if let Err(e) = self.reconnect_to_central_command().await {
+                        error!("Failed to reconnect to central command: {}", e);
+                    }
+                    break;
                 }
+                offset = end;
             }
             let mut reply = [0; 2];
             if let Err(e) = self.stream.read_exact(&mut reply).await {
