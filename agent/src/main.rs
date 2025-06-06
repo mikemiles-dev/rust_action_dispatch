@@ -44,6 +44,7 @@
 //! - `core_logic::communications` for message definitions
 mod job_dispatch;
 
+use rkyv::rancor;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
@@ -166,75 +167,77 @@ impl CentralCommandWriter {
     }
 
     pub async fn write(&mut self, message: Message) {
-        let serialized: Vec<u8> = match message.clone().try_into() {
-            Ok(msg) => msg,
+        let serialized = match Self::serialize_message(&message) {
+            Ok(data) => data,
             Err(e) => {
                 error!("Failed to serialize message: {}", e);
                 return;
             }
         };
 
-        // Prepare the length prefix (4 bytes, big-endian)
-        let msg_len = serialized.len() as u32;
-        let len_bytes = msg_len.to_be_bytes();
+        let len_bytes = (serialized.len() as u32).to_be_bytes();
 
-        // Write until we get exactly "OK" from the central command
         loop {
-            // Write the 4-byte length prefix
-            // Retry writing the length prefix until it succeeds or reconnection fails
-            loop {
-                match self.stream.write_all(&len_bytes).await {
-                    Ok(_) => break, // Success, proceed
-                    Err(e) => {
-                        error!("Error writing length prefix to central command: {}", e);
-                        if let Err(e) = self.reconnect_to_central_command().await {
-                            error!("Failed to reconnect to central command: {}", e);
-                            break; // Give up if reconnection fails
-                        }
-                        // After reconnection, try again
-                        continue;
-                    }
-                }
-            }
-
-            // Write the serialized message in chunks to avoid large buffer issues
-            let mut offset = 0;
-            while offset < serialized.len() {
-                let end = std::cmp::min(offset + CHUNKS_SIZE, serialized.len());
-                if let Err(e) = self.stream.write_all(&serialized[offset..end]).await {
-                    error!("Error writing to central command: {}", e);
-                    if let Err(e) = self.reconnect_to_central_command().await {
-                        error!("Failed to reconnect to central command: {}", e);
-                    }
+            if let Err(e) = self.write_length_prefix(&len_bytes).await {
+                error!("Error writing length prefix: {}", e);
+                if self.try_reconnect().await.is_err() {
                     break;
-                }
-                offset = end;
-            }
-            // if let Err(e) = self.stream.shutdown().await {
-            //     eprintln!("Client: Failed to shutdown write half: {}", e);
-            // }
-            let mut reply = [0; 2];
-            if let Err(e) = self.stream.read_exact(&mut reply).await {
-                error!("Error reading reply from central command: {}", e);
-                if let Err(e) = self.reconnect_to_central_command().await {
-                    error!("Failed to reconnect to central command: {}", e);
                 }
                 continue;
             }
-            if &reply == b"OK" {
-                break;
-            } else {
-                error!("Unexpected reply from central command: {:?}", reply);
-                // Optionally, you can continue to wait or break here depending on your protocol
-                // For now, break to avoid infinite loop on unexpected reply
-                break;
+
+            if let Err(e) = self.write_message_chunks(&serialized).await {
+                error!("Error writing message chunks: {}", e);
+                if self.try_reconnect().await.is_err() {
+                    break;
+                }
+                continue;
+            }
+
+            match self.read_ok_reply().await {
+                Ok(true) => break,
+                Ok(false) => {
+                    error!("Unexpected reply from central command");
+                    break;
+                }
+                Err(e) => {
+                    error!("Error reading reply: {}", e);
+                    if self.try_reconnect().await.is_err() {
+                        break;
+                    }
+                }
             }
         }
-        // if let Err(e) = self.reconnect_to_central_command().await {
-        //     error!("Failed to reconnect to central command: {}", e);
-        // }
 
         debug!("Sent message to central command: {:?}", message);
+    }
+
+    fn serialize_message(message: &Message) -> Result<Vec<u8>, rancor::Error> {
+        message.clone().try_into()
+    }
+
+    async fn write_length_prefix(&mut self, len_bytes: &[u8]) -> io::Result<()> {
+        self.stream.write_all(len_bytes).await
+    }
+
+    async fn write_message_chunks(&mut self, data: &[u8]) -> io::Result<()> {
+        let mut offset = 0;
+        while offset < data.len() {
+            let end = std::cmp::min(offset + CHUNKS_SIZE, data.len());
+            self.stream.write_all(&data[offset..end]).await?;
+            offset = end;
+        }
+        Ok(())
+    }
+
+    async fn read_ok_reply(&mut self) -> io::Result<bool> {
+        let mut reply = [0; 2];
+        self.stream.read_exact(&mut reply).await?;
+        Ok(&reply == b"OK")
+    }
+
+    async fn try_reconnect(&mut self) -> io::Result<()> {
+        self.reconnect_to_central_command().await
     }
 }
 

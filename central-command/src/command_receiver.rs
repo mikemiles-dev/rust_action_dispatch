@@ -184,59 +184,89 @@ impl CommandReceiver {
         peer_addr: std::net::SocketAddr,
     ) -> Result<(), Box<dyn Error>> {
         loop {
-            // Read the 4-byte message length prefix
-            let mut len_buf = [0u8; 4];
-            if let Err(e) = stream.read_exact(&mut len_buf).await {
-                if e.kind() == std::io::ErrorKind::UnexpectedEof {
-                    info!("Connection with {} closed by peer.", peer_addr);
-                    break;
-                } else {
-                    error!("Failed to read message length from {}: {}", peer_addr, e);
-                    break;
-                }
-            }
-            let msg_len = u32::from_be_bytes(len_buf) as usize;
-            if msg_len == 0 {
-                warn!("Received zero-length message from {}", peer_addr);
-                continue;
-            }
+            let msg_len = match Self::read_message_length(stream, peer_addr).await? {
+                Some(len) => len,
+                None => break, // Connection closed
+            };
 
-            // Read the message body in chunks until the full message is received
-            let mut received_data = Vec::with_capacity(msg_len);
-            while received_data.len() < msg_len {
-                let to_read = std::cmp::min(CHUNKS_SIZE, msg_len - received_data.len());
-                let mut buffer = vec![0u8; to_read];
-                let n = stream.read(&mut buffer).await?;
-                if n == 0 {
-                    info!(
-                        "Connection with {} closed while reading message.",
-                        peer_addr
-                    );
-                    return Ok(());
-                }
-                received_data.extend_from_slice(&buffer[..n]);
-            }
-
-            let message: Message = received_data.clone().try_into()?;
+            let received_data = Self::read_message_body(stream, msg_len, peer_addr).await?;
+            let message: Message = received_data.try_into()?;
 
             // Send an OK reply to the agent after job complete
             if let Err(e) = stream.write_all(b"OK").await {
                 error!("Failed to send OK reply to {}: {}", peer_addr, e);
             }
 
-            match message {
-                Message::Ping => {
-                    debug!("Ping received from {}", peer_addr);
+            Self::handle_message(message, datastore_client.clone(), peer_addr).await?;
+        }
+        Ok(())
+    }
+
+    async fn read_message_length(
+        stream: &mut tokio::net::TcpStream,
+        peer_addr: std::net::SocketAddr,
+    ) -> Result<Option<usize>, Box<dyn Error>> {
+        let mut len_buf = [0u8; 4];
+        match stream.read_exact(&mut len_buf).await {
+            Ok(_) => {
+                let msg_len = u32::from_be_bytes(len_buf) as usize;
+                if msg_len == 0 {
+                    warn!("Received zero-length message from {}", peer_addr);
+                    Ok(None)
+                } else {
+                    Ok(Some(msg_len))
                 }
-                Message::RegisterAgent(register_agent) => {
-                    Self::register_agent(datastore_client.clone(), register_agent).await
-                }
-                Message::JobComplete(job_complete) => {
-                    Self::complete_agent_run(datastore_client.clone(), job_complete, peer_addr)
-                        .await?;
-                }
-                _ => (),
             }
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                    info!("Connection with {} closed by peer.", peer_addr);
+                    Ok(None)
+                } else {
+                    error!("Failed to read message length from {}: {}", peer_addr, e);
+                    Ok(None)
+                }
+            }
+        }
+    }
+
+    async fn read_message_body(
+        stream: &mut tokio::net::TcpStream,
+        msg_len: usize,
+        peer_addr: std::net::SocketAddr,
+    ) -> Result<Vec<u8>, Box<dyn Error>> {
+        let mut received_data = Vec::with_capacity(msg_len);
+        while received_data.len() < msg_len {
+            let to_read = std::cmp::min(CHUNKS_SIZE, msg_len - received_data.len());
+            let mut buffer = vec![0u8; to_read];
+            let n = stream.read(&mut buffer).await?;
+            if n == 0 {
+                info!(
+                    "Connection with {} closed while reading message.",
+                    peer_addr
+                );
+                return Err("Connection closed while reading message".into());
+            }
+            received_data.extend_from_slice(&buffer[..n]);
+        }
+        Ok(received_data)
+    }
+
+    async fn handle_message(
+        message: Message,
+        datastore_client: Arc<Datastore>,
+        peer_addr: std::net::SocketAddr,
+    ) -> Result<(), Box<dyn Error>> {
+        match message {
+            Message::Ping => {
+                debug!("Ping received from {}", peer_addr);
+            }
+            Message::RegisterAgent(register_agent) => {
+                Self::register_agent(datastore_client, register_agent).await;
+            }
+            Message::JobComplete(job_complete) => {
+                Self::complete_agent_run(datastore_client, job_complete, peer_addr).await?;
+            }
+            _ => (),
         }
         Ok(())
     }
