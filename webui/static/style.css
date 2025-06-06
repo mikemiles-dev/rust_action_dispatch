@@ -36,7 +36,6 @@ body {
     background: linear-gradient(180deg, #161b2b 0%, #232a45 100%);
     height: 100vh;
     background-color: rgb(22, 27, 43);
-    padding: 10px;
     justify-content: flex-start;
     display: flex;
     flex-direction: column;
@@ -44,6 +43,16 @@ body {
     color: white;
     height: 100%;
     color: rgb(212, 212, 212);
+    line-height: 35px; 
+}
+
+.selected {
+    justify-content: flex-start;
+    display: flex;
+    flex-direction: column;
+    background-color: #007bff;
+    color: white;
+    width: 100%;
 }
 
 .home-card {
@@ -78,18 +87,26 @@ body {
 .nav-items {
     font-size: 0.8em;
     margin-top: 40px;
-    margin-left: 15px;
     color: rgb(219, 219, 219);
     text-justify: left;
+    justify-content: flex-start;
+    display: flex;
+    flex-direction: column;
 }
 
 .nav-items a {
+    padding-left: 20px;
     color: white;
     text-decoration: none;
 }
 
 .nav-items a:hover {
-    color: rgb(232, 91, 91);
+    text-decoration: underline;
+}
+
+.nav-item {
+    border-radius: 6px;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .search {
