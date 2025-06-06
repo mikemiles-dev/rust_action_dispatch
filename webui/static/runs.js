@@ -56,5 +56,6 @@ function renderRunsTable(params = {}) {
             if (container) {
                 container.innerHTML = `<p>Error loading data: ${error.message}</p>`;
             }
+            setTimeout(() => renderRunsTable(params), 10000);
         });
 }
