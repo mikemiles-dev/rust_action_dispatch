@@ -50,6 +50,8 @@ use crate::SERVER_ADDRESS;
 use core_logic::datastore::{Datastore, agents::AgentV1, jobs::Status};
 use tokio::io::AsyncWriteExt;
 
+const CHUNKS_SIZE: usize = 4096; // Size of each message chunk
+
 pub struct CommandReceiver {
     datastore_client: Arc<Datastore>,
     listener: TcpListener,
@@ -181,7 +183,6 @@ impl CommandReceiver {
         datastore_client: Arc<Datastore>,
         peer_addr: std::net::SocketAddr,
     ) -> Result<(), Box<dyn Error>> {
-        const CHUNKS_SIZE: usize = 4096; // Size of each message chunk
         let mut buffer = [0; CHUNKS_SIZE];
         let mut received_data = Vec::new();
         loop {

@@ -61,6 +61,8 @@ pub const VERSION: &str = "0.1.0";
 static AGENT_PORT: OnceLock<u16> = OnceLock::new();
 static AGENT_NAME: OnceLock<String> = OnceLock::new();
 
+const CHUNKS_SIZE: usize = 8192; // Size for writing messages in chunks
+
 fn get_agent_port() -> u16 {
     *AGENT_PORT.get_or_init(|| {
         env::var("AGENT_PORT")
@@ -176,9 +178,8 @@ impl CentralCommandWriter {
         loop {
             // Write the serialized message in chunks to avoid large buffer issues
             let mut offset = 0;
-            let chunk_size = 4096;
             while offset < serialized.len() {
-                let end = std::cmp::min(offset + chunk_size, serialized.len());
+                let end = std::cmp::min(offset + CHUNKS_SIZE, serialized.len());
                 if let Err(e) = self.stream.write_all(&serialized[offset..end]).await {
                     error!("Error writing to central command: {}", e);
                     if let Err(e) = self.reconnect_to_central_command().await {
