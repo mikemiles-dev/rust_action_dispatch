@@ -161,7 +161,9 @@ impl CommandReceiver {
         // Find job name
         let filter = doc! { "name": &job_name };
         // Update the job
-        let update = doc! { "$addToSet": { "agents_complete": &agent_name } };
+        let update = doc! {
+            "$addToSet": { "agents_complete": &agent_name },
+        };
 
         info!("{agent_name} on {} Completed {job_name}", peer_addr);
 

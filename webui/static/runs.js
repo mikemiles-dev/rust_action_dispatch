@@ -19,9 +19,10 @@ function renderRunsTable(params = {}) {
                 let table = '<table><thead><tr>';
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'job_name', true); return false;\">Job Name</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'agent_name', true); return false;\">Agent Name</a></th>`;
+                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'outcome', true); return false;\">Outcome</a></th>`;
+                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'return_code', true); return false;\">Return Code</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'started_at', true); return false;\">Started At</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'completed_at', true); return false;\">Completed At</a></th>`;
-                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'completed_at', true); return false;\">Return Code</a></th>`;
                 table += '</tr></thead><tbody>';
 
                 // Add table rows
@@ -31,9 +32,16 @@ function renderRunsTable(params = {}) {
                     table += '<tr>';
                     table += `<td>${item["job_name"]}</td>`;
                     table += `<td>${item["agent_name"]}</td>`;
+                    if (item["outcome"] === 1) {
+                        table += `<td style="color: green;">Success</td>`;
+                    } else if (item["outcome"] === 0) {
+                        table += `<td style="color: red;">Failure</td>`;
+                    } else {
+                        table += `<td>${item["outcome"]}</td>`;
+                    }
+                    table += `<td>${item["return_code"]}</td>`;
                     table += `<td class="utc-date" data-timestamp="${start_at_value}">${start_at_value}</td>`;
                     table += `<td class="utc-date" data-timestamp="${completed_at_value}">${completed_at_value}</td>`;
-                    table += `<td>${item["return_code"]}</td>`;
                     table += '</tr>';
                 });
 

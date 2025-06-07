@@ -5,6 +5,15 @@
 
   {% include "filter" %}
 
+  <input onchange="clearStatusFilter();" type="radio" id="clear_filter" name="agent_status_filter" value="-1" {% if status_filter is not defined or status_filter != '1' or status_filter != '0' %}checked{% endif %}>
+  <label for="online_filter">Both</label>
+  <input onchange="applyStatusFilter(1);" type="radio" id="online_filter" name="agent_status_filter" value="1" {% if status_filter is defined and status_filter == '1' %}checked{% endif %}>
+  <label for="online_filter">Success</label>
+  <input onchange="applyStatusFilter(0);" type="radio" id="offline_filter" name="agent_status_filter" value="0" {% if status_filter is defined and status_filter == '0' %}checked{% endif %}> 
+  <label for="offline_filter">Failure</label>
+  <br><br>
+
+
   <div id="items">
   </div>
 
