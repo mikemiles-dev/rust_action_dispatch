@@ -45,6 +45,7 @@ use agents::AgentV1;
 use jobs::JobV1;
 
 const MONGODB_URI: &str = "mongodb://localhost:27017";
+const DATABASE_NAME: &str = "rust-action-dispatch";
 
 pub enum DataStoreTypes {
     Agent(AgentV1),
@@ -73,6 +74,10 @@ impl Datastore {
 }
 
 impl Datastore {
+    pub fn get_database(&self) -> mongodb::Database {
+        self.client.database(DATABASE_NAME)
+    }
+
     pub async fn try_new() -> Result<Self, MongoError> {
         // Load the MongoDB connection string from an environment variable:
         let client_uri = match env::var("MONGODB_URI") {
@@ -90,7 +95,7 @@ impl Datastore {
         let options = ClientOptions::parse(&client_uri).await?;
 
         let client = Client::with_options(options)?;
-        let db = client.database("rust-action-dispatch");
+        let db = client.database(DATABASE_NAME);
 
         let agents = db.collection::<bson::Document>("agents");
         AgentV1::create_indicies(&agents)
@@ -108,10 +113,7 @@ impl Datastore {
         &self,
         collection_name: &str,
     ) -> Result<Collection<T>, Box<dyn Error>> {
-        let collection = self
-            .client
-            .database("rust-action-dispatch")
-            .collection::<T>(collection_name);
+        let collection = self.get_database().collection::<T>(collection_name);
         Ok(collection)
     }
 }

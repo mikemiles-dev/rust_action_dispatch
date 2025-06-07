@@ -73,7 +73,7 @@ impl CommandReceiver {
     /// This function takes a `RegisterAgent` message, converts it to an `AgentV1` struct,
     /// and inserts it into the `agents` collection in the MongoDB database.
     async fn register_agent(datastore_client: Arc<Datastore>, register_agent: RegisterAgent) {
-        let db = datastore_client.client.database("rust-action-dispatch");
+        let db = datastore_client.get_database();
         let agents_collection = db.collection::<Document>("agents");
         let agent: AgentV1 = register_agent.into();
 
@@ -98,35 +98,50 @@ impl CommandReceiver {
     pub async fn check_job_completion(
         datastore_client: Arc<Datastore>,
         job_name: &str,
-    ) -> Result<bool, Box<dyn Error>> {
-        let db = datastore_client.client.database("rust-action-dispatch");
+    ) -> Result<(), Box<dyn Error>> {
+        let db = datastore_client.get_database();
         let jobs_collection = db.collection::<Document>("jobs");
 
         let filter = doc! { "name": job_name };
-        let job: Option<Document> = jobs_collection.find_one(filter.clone()).await?;
+        let job_doc = jobs_collection.find_one(filter.clone()).await?;
 
-        if let Some(job_doc) = job {
-            if let Ok(agents_required) = job_doc.get_array("agents_required") {
-                if let Ok(agents_complete) = job_doc.get_array("agents_complete") {
-                    if agents_required.len() == agents_complete.len() {
-                        info!("Completed job {}", job_name);
+        let Some(job_doc) = job_doc else {
+            debug!("Job {} not found.", job_name);
+            return Ok(());
+        };
 
-                        let update = doc! {
-                            "$set": {
-                                "status": Status::Completed,
-                                "agents_running": Array::new(),
-                                "agents_complete": Array::new(),
-                            }
-                        };
-                        jobs_collection.update_one(filter, update).await?;
-
-                        return Ok(true);
-                    }
-                }
+        let agents_required = match job_doc.get_array("agents_required") {
+            Ok(arr) => arr,
+            Err(_) => {
+                debug!("Job {} missing 'agents_required' field.", job_name);
+                return Ok(());
             }
+        };
+
+        let agents_complete = match job_doc.get_array("agents_complete") {
+            Ok(arr) => arr,
+            Err(_) => {
+                debug!("Job {} missing 'agents_complete' field.", job_name);
+                return Ok(());
+            }
+        };
+
+        if agents_required.len() == agents_complete.len() && !agents_required.is_empty() {
+            info!("Completed job {}", job_name);
+
+            let update = doc! {
+                "$set": {
+                    "status": Status::Completed,
+                    "agents_running": Array::new(),
+                    "agents_complete": Array::new(),
+                }
+            };
+            jobs_collection.update_one(filter, update).await?;
+        } else {
+            debug!("Job {} is not yet complete.", job_name);
         }
-        debug!("Job {} is not yet complete.", job_name);
-        Ok(false)
+
+        Ok(())
     }
 
     /// Adds an agent to the `agents_complete` list of a job in the database.
@@ -137,13 +152,15 @@ impl CommandReceiver {
         job_complete: JobComplete,
         peer_addr: std::net::SocketAddr,
     ) -> Result<(), Box<dyn Error>> {
-        let db = datastore_client.client.database("rust-action-dispatch");
+        let db = datastore_client.get_database();
         let jobs_collection = db.collection::<Document>("jobs");
 
         let agent_name = job_complete.agent_name.clone();
         let job_name = job_complete.job_name.clone();
 
+        // Find job name
         let filter = doc! { "name": &job_name };
+        // Update the job
         let update = doc! { "$addToSet": { "agents_complete": &agent_name } };
 
         info!("{agent_name} on {} Completed {job_name}", peer_addr);
@@ -166,9 +183,8 @@ impl CommandReceiver {
         run.insert_entry(&db).await?;
 
         drop(db);
-        Self::check_job_completion(datastore_client.clone(), &job_name).await?;
 
-        Ok(())
+        Self::check_job_completion(datastore_client.clone(), &job_name).await
     }
 
     /// Processes incoming messages from the TCP stream.

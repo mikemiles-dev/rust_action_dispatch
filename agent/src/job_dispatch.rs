@@ -29,7 +29,7 @@ use tokio::sync::mpsc::{self, Sender};
 use tracing::{error, info};
 
 use crate::{CentralCommandWriter, get_agent_name};
-use core_logic::communications::{DispatchJob, JobComplete, Message};
+use core_logic::communications::{DispatchJob, JobComplete, JobOutCome, Message};
 
 pub struct JobDispatcher {
     sender: Sender<JobComplete>,
@@ -48,6 +48,7 @@ impl JobDispatcher {
                     completed_at: job_info.completed_at,
                     job_name: job_info.job_name.clone(),
                     agent_name: get_agent_name(),
+                    outcome: job_info.outcome,
                     return_code: job_info.return_code,
                     data: [0u8; 1000000].to_vec(), // Placeholder for job data
                 });
@@ -67,6 +68,7 @@ impl JobDispatcher {
             let job_name = job.job_name.clone();
             let command_name = job.command.clone();
             let args = job.args.clone();
+            let valid_return_codes = job.valid_return_codes.clone();
             // Here you would run the job, e.g., by executing a command
             info!("Spawning job: {} with command: {}", job_name, command_name);
 
@@ -86,7 +88,12 @@ impl JobDispatcher {
 
             let return_code = output.as_ref().and_then(|o| o.status.code()).unwrap_or(-1);
 
-            info!("Output is: {:?}", output);
+            let outcome = match valid_return_codes {
+                Some(valid_codes) if valid_codes.contains(&return_code) => JobOutCome::Success,
+                _ => JobOutCome::Failure,
+            };
+
+            let _output = info!("Output is: {:?}", output);
             info!("Job {} completed", job_name);
 
             let end_time = DateTime::now();
@@ -96,6 +103,7 @@ impl JobDispatcher {
                 completed_at: end_time.timestamp_millis(),
                 job_name: job_name.clone(),
                 agent_name: get_agent_name(),
+                outcome,
                 return_code,
                 data: vec![],
             };

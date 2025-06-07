@@ -40,6 +40,7 @@
 use rkyv::{Archive, Deserialize, Serialize, option::ArchivedOption, rancor::Error};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
+use tracing::error;
 
 #[derive(Archive, Deserialize, Serialize, Hash, PartialEq, Eq, Debug, Clone)]
 pub struct RegisterAgent {
@@ -54,6 +55,43 @@ pub struct DispatchJob {
     pub command: String,
     pub args: String,
     pub agent_name: Option<String>,
+    pub valid_return_codes: Option<Vec<i32>>, // Optional list of valid return codes
+}
+
+#[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
+pub enum JobOutCome {
+    Failure = 0,
+    Success = 1,
+    Unknown,
+}
+
+impl From<&ArchivedJobOutCome> for JobOutCome {
+    fn from(archived: &ArchivedJobOutCome) -> Self {
+        match archived {
+            ArchivedJobOutCome::Failure => JobOutCome::Failure,
+            ArchivedJobOutCome::Success => JobOutCome::Success,
+            ArchivedJobOutCome::Unknown => JobOutCome::Unknown,
+        }
+    }
+}
+
+impl From<JobOutCome> for i32 {
+    fn from(outcome: JobOutCome) -> Self {
+        outcome as i32
+    }
+}
+
+impl From<i32> for JobOutCome {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => JobOutCome::Failure,
+            1 => JobOutCome::Success,
+            _ => {
+                error!("Warning: Unknown JobOutCome value encountered: {}", value);
+                JobOutCome::Unknown // Default to Failure for unknown values
+            }
+        }
+    }
 }
 
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
@@ -63,6 +101,7 @@ pub struct JobComplete {
     pub job_name: String,
     pub agent_name: String,
     pub return_code: i32,
+    pub outcome: JobOutCome,
     pub data: Vec<u8>,
 }
 
@@ -125,18 +164,24 @@ impl From<&ArchivedMessage> for Message {
                     job_name: job_name.to_string(),
                     command: job_command,
                     args: job_args.to_string(),
+                    valid_return_codes: archived
+                        .valid_return_codes
+                        .as_ref()
+                        .map(|v| v.iter().map(|&x| x.into()).collect()),
                     agent_name,
                 })
             }
             ArchivedMessage::JobComplete(archived) => {
                 let job_name = archived.job_name.to_string();
                 let agent_name = archived.agent_name.to_string();
+                let outcome = &archived.outcome;
                 Message::JobComplete(JobComplete {
                     started_at: archived.started_at.into(),
                     completed_at: archived.completed_at.into(),
                     job_name,
                     agent_name,
                     return_code: archived.return_code.into(),
+                    outcome: outcome.into(),
                     data: archived.data.to_vec(), // Convert from archived to owned Vec<u8>
                 })
             }

@@ -275,6 +275,7 @@ impl AgentManager {
                 job_name: job.name.clone(),
                 command: job.command.clone(),
                 args: job.args.join(" "),
+                valid_return_codes: Some(job.valid_return_codes.clone()),
                 agent_name: Some(agent.name.clone()),
             };
             let message = Message::DispatchJob(dispatch_job);
