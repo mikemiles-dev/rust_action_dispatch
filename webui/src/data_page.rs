@@ -56,9 +56,13 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             for (key, value) in additional_filters {
                 let addtional_filter_doc =
                     Self::build_filter(value.clone(), vec![key.clone()], None, None, None, None);
-                filter_doc.extend(addtional_filter_doc);
+                filter_doc = doc! {
+                    "$and": [filter_doc, addtional_filter_doc]
+                };
             }
         }
+
+        println!("FFF {:?}", filter_doc);
 
         let total_count = collection
             .count_documents(filter_doc.clone())
