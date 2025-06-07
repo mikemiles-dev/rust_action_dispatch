@@ -35,6 +35,26 @@ pub async fn runs_page(
     )
 }
 
+#[get("/runs_output?<id>")]
+pub async fn runs_output(state: &State<WebState>, id: Option<String>) -> String {
+    let collection = state
+        .datastore
+        .get_collection::<RunsV1>("runs")
+        .await
+        .ok()
+        .unwrap();
+    let object_id = mongodb::bson::oid::ObjectId::parse_str(&id.unwrap_or_default())
+        .ok()
+        .unwrap();
+    let run_entry = collection
+        .find_one(mongodb::bson::doc! { "_id": object_id })
+        .await
+        .ok()
+        .unwrap();
+
+    run_entry.unwrap().output
+}
+
 #[get("/runs_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<outcome_filter>&<order>")]
 pub async fn runs_data(
     state: &State<WebState>,
@@ -54,6 +74,8 @@ pub async fn runs_data(
             "job_name".to_string(),
             "agent_name".to_string(),
             "return_code".to_string(),
+            "command".to_string(),
+            "output".to_string(),
         ],
         page,
         filter: filter.clone(),

@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 
 use agents::{agents_data, agents_page};
 use core_logic::datastore::Datastore;
-use runs::{runs_data, runs_page};
+use runs::{runs_data, runs_output, runs_page};
 
 pub struct WebState {
     datastore: Datastore,
@@ -67,7 +67,14 @@ async fn rocket() -> _ {
         .manage(web_state)
         .mount(
             "/",
-            routes![index, runs_page, agents_page, runs_data, agents_data],
+            routes![
+                index,
+                runs_page,
+                runs_output,
+                agents_page,
+                runs_data,
+                agents_data
+            ],
         )
         .mount("/", rocket::routes![static_files])
         .mount(

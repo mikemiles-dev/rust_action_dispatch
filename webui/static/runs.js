@@ -71,7 +71,7 @@ function renderRunsTable(params = {}) {
                     }
                     table += `<td class="utc-date" data-timestamp="${start_at_value}">${start_at_value}</td>`;
                     table += `<td class="utc-date" data-timestamp="${completed_at_value}">${completed_at_value}</td>`;
-                    table += `<td><a href=\"/run_output/${item["_id"]}\" class=\"btn btn-primary\" target=\"_blank\">Output</a></td>`;
+                    table += `<td><a href=\"/runs_output?id=${item["_id"]['$oid']}\" class=\"btn btn-primary\" target=\"_blank\">Output</a></td>`;
                     table += '</tr>';
                 });
 
