@@ -218,6 +218,7 @@ input[type="datetime-local"]:disabled {
 
 .content table {
     width: 100%;
+    box-shadow: 0 4px 16px rgba(177, 119, 119, 0.1);
     background: #fafbfc;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
@@ -227,13 +228,13 @@ input[type="datetime-local"]:disabled {
 
 .content table th {
     background: #f1f1f1;
-    padding: 12px 15px;
+    padding: 5px 8px;
     text-align: left;
     font-weight: 600;
 }
 
 .content table td {
-    padding: 10px 15px;
+    padding: 2px 8px;
     border-bottom: 1px solid #e0e0e0;
 }
 .content table tr:nth-child(even) {

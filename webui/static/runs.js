@@ -31,10 +31,12 @@ function renderRunsTable(params = {}) {
                 let table = '<table><thead><tr>';
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'job_name', true); return false;\">Job Name</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'agent_name', true); return false;\">Agent Name</a></th>`;
-                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'outcome', true); return false;\">Outcome</a></th>`;
+                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'command', true); return false;\">Command</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'return_code', true); return false;\">Return Code</a></th>`;
+                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'outcome', true); return false;\">Outcome</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'started_at', true); return false;\">Started At</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'completed_at', true); return false;\">Completed At</a></th>`;
+                table += `<th>Output</th>`;
                 table += '</tr></thead><tbody>';
 
                 // Add table rows
@@ -44,6 +46,22 @@ function renderRunsTable(params = {}) {
                     table += '<tr>';
                     table += `<td>${item["job_name"]}</td>`;
                     table += `<td>${item["agent_name"]}</td>`;
+                    const command = item["command"] || "";
+                    const shortCommand = command.length > 10 ? command.substring(0, 10) + "..." : command;
+                    const commandId = `command-${item["_id"]}`;
+                    table += `<td>
+                        <span id="${commandId}" style="cursor:pointer;" onclick="
+                            const el = document.getElementById('${commandId}');
+                            if (el.dataset.expanded === 'true') {
+                                el.textContent = '${shortCommand.replace(/'/g, "\\'")}';
+                                el.dataset.expanded = 'false';
+                            } else {
+                                el.textContent = '${command.replace(/'/g, "\\'").replace(/"/g, '&quot;')}';
+                                el.dataset.expanded = 'true';
+                            }
+                        " data-expanded="false">${shortCommand}</span>
+                    </td>`;
+                    table += `<td>${item["return_code"]}</td>`;
                     if (item["outcome"] === 1) {
                         table += `<td style="color: green;">Success</td>`;
                     } else if (item["outcome"] === 0) {
@@ -51,9 +69,9 @@ function renderRunsTable(params = {}) {
                     } else {
                         table += `<td>${item["outcome"]}</td>`;
                     }
-                    table += `<td>${item["return_code"]}</td>`;
                     table += `<td class="utc-date" data-timestamp="${start_at_value}">${start_at_value}</td>`;
                     table += `<td class="utc-date" data-timestamp="${completed_at_value}">${completed_at_value}</td>`;
+                    table += `<td><a href=\"/run_output/${item["_id"]}\" class=\"btn btn-primary\" target=\"_blank\">Output</a></td>`;
                     table += '</tr>';
                 });
 

@@ -99,6 +99,7 @@ pub struct JobComplete {
     pub started_at: i64,   // Milliseconds since epoch
     pub completed_at: i64, // Milliseconds since epoch
     pub job_name: String,
+    pub command: String,
     pub agent_name: String,
     pub return_code: i32,
     pub outcome: JobOutCome,
@@ -176,6 +177,7 @@ impl From<&ArchivedMessage> for Message {
                 let agent_name = archived.agent_name.to_string();
                 let outcome = &archived.outcome;
                 let output = archived.output.to_string();
+                let command = archived.command.to_string();
                 Message::JobComplete(JobComplete {
                     started_at: archived.started_at.into(),
                     completed_at: archived.completed_at.into(),
@@ -183,6 +185,7 @@ impl From<&ArchivedMessage> for Message {
                     agent_name,
                     return_code: archived.return_code.into(),
                     outcome: outcome.into(),
+                    command,
                     output,
                 })
             }

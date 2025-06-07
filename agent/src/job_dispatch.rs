@@ -47,6 +47,7 @@ impl JobDispatcher {
                     started_at: job_info.started_at,
                     completed_at: job_info.completed_at,
                     job_name: job_info.job_name.clone(),
+                    command: job_info.command.clone(),
                     agent_name: get_agent_name(),
                     outcome: job_info.outcome,
                     return_code: job_info.return_code,
@@ -114,6 +115,7 @@ impl JobDispatcher {
                 job_name: job_name.clone(),
                 agent_name: get_agent_name(),
                 outcome,
+                command: format!("{} {}", command_name, args),
                 return_code,
                 output,
             };
