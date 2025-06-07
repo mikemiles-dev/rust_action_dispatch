@@ -5,16 +5,19 @@ use rocket::serde::json::Json;
 use rocket_dyn_templates::{Template, context};
 use serde_json::json;
 
+use std::collections::HashMap;
+
 use crate::WebState;
 use crate::data_page::{DataPage, DataPageParams};
 
-#[get("/runs?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
+#[get("/runs?<page>&<range_start>&<range_end>&<filter>&<outcome_filter>&<sort>&<order>")]
 pub async fn runs_page(
     range_start: Option<u64>,
     range_end: Option<u64>,
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
+    outcome_filter: Option<String>,
     page: Option<u32>,
 ) -> Template {
     Template::render(
@@ -26,12 +29,13 @@ pub async fn runs_page(
             range_end: range_end.unwrap_or_default(),
             filter: filter.unwrap_or_default(),
             order: order.unwrap_or_default(),
+            outcome_filter: outcome_filter.unwrap_or_default(),
             page_name: "Runs",
         },
     )
 }
 
-#[get("/runs_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>")]
+#[get("/runs_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<outcome_filter>&<order>")]
 pub async fn runs_data(
     state: &State<WebState>,
     page: Option<u32>,
@@ -40,6 +44,7 @@ pub async fn runs_data(
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
+    outcome_filter: Option<String>,
 ) -> Json<serde_json::Value> {
     let data_page_params = DataPageParams {
         collection: "runs".to_string(),
@@ -52,6 +57,13 @@ pub async fn runs_data(
         ],
         page,
         filter: filter.clone(),
+        additional_filters: if outcome_filter.is_some() {
+            let mut filters = HashMap::new();
+            filters.insert("outcome".to_string(), outcome_filter.unwrap());
+            Some(filters)
+        } else {
+            None
+        },
         sort: sort.clone(),
         order,
         ..Default::default()

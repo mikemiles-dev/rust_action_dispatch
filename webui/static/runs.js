@@ -1,3 +1,15 @@
+function applyOutcomeFilter(status) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('outcome_filter', status);
+    window.location = url.toString();
+}
+
+function clearOutcomeFilter() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('outcome_filter');
+    window.location = url.toString();
+}
+
 function renderRunsTable(params = {}) {
     // Append filter string to the URL if provided
     const url = "/runs_data";
