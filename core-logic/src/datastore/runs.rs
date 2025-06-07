@@ -56,6 +56,7 @@ pub struct RunsV1 {
     pub outcome: Outcome,
     pub agent_name: String,
     pub return_code: i32,
+    pub output: String,
 }
 
 impl RunsV1 {
@@ -77,6 +78,7 @@ impl From<JobComplete> for RunsV1 {
             agent_name: job_complete.agent_name,
             outcome: job_complete.outcome.into(),
             return_code: job_complete.return_code,
+            output: job_complete.output,
         }
     }
 }

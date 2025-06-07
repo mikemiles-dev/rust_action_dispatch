@@ -102,7 +102,7 @@ pub struct JobComplete {
     pub agent_name: String,
     pub return_code: i32,
     pub outcome: JobOutCome,
-    pub data: Vec<u8>,
+    pub output: String,
 }
 
 #[derive(Archive, Deserialize, Serialize, PartialEq, Eq, Debug, Clone)]
@@ -175,6 +175,7 @@ impl From<&ArchivedMessage> for Message {
                 let job_name = archived.job_name.to_string();
                 let agent_name = archived.agent_name.to_string();
                 let outcome = &archived.outcome;
+                let output = archived.output.to_string();
                 Message::JobComplete(JobComplete {
                     started_at: archived.started_at.into(),
                     completed_at: archived.completed_at.into(),
@@ -182,7 +183,7 @@ impl From<&ArchivedMessage> for Message {
                     agent_name,
                     return_code: archived.return_code.into(),
                     outcome: outcome.into(),
-                    data: archived.data.to_vec(), // Convert from archived to owned Vec<u8>
+                    output,
                 })
             }
         }

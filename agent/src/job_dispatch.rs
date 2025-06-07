@@ -50,7 +50,7 @@ impl JobDispatcher {
                     agent_name: get_agent_name(),
                     outcome: job_info.outcome,
                     return_code: job_info.return_code,
-                    data: [0u8; 1000000].to_vec(), // Placeholder for job data
+                    output: job_info.output,
                 });
                 let mut writer = central_command_writer.lock().await;
                 writer.write(message).await;
@@ -93,8 +93,18 @@ impl JobDispatcher {
                 _ => JobOutCome::Failure,
             };
 
-            let _output = info!("Output is: {:?}", output);
-            info!("Job {} completed", job_name);
+            info!("{:?}", output);
+
+            let (output, _output_error) = match output {
+                Some(output) => {
+                    let (output, output_error) = (output.stdout, output.stderr);
+                    (
+                        String::from_utf8(output).unwrap_or_default(),
+                        String::from_utf8(output_error).unwrap_or_default(),
+                    )
+                }
+                None => (String::new(), String::new()),
+            };
 
             let end_time = DateTime::now();
 
@@ -105,7 +115,7 @@ impl JobDispatcher {
                 agent_name: get_agent_name(),
                 outcome,
                 return_code,
-                data: vec![],
+                output,
             };
 
             if let Err(e) = sender.send(job_complete).await {
