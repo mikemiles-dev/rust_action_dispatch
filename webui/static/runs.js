@@ -48,7 +48,7 @@ function renderRunsTable(params = {}) {
                     table += `<td>${item["agent_name"]}</td>`;
                     const command = item["command"] || "";
                     const shortCommand = command.length > 10 ? command.substring(0, 10) + "..." : command;
-                    const commandId = `command-${item["_id"]}`;
+                    const commandId = `command-${item["_id"]['$oid']}`;
                     table += `<td>
                         <span id="${commandId}" style="cursor:pointer;" onclick="
                             const el = document.getElementById('${commandId}');
