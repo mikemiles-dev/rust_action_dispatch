@@ -348,10 +348,6 @@ dialog::backdrop {
     background-color: rgba(0, 0, 0, 0.5); /* Dim the background */
 }
 
-.dialog-content {
-    text-align: center;
-}
-
 .dialog-content h2 {
     margin-top: 0;
     color: #333;

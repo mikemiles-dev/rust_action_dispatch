@@ -94,17 +94,16 @@ impl JobDispatcher {
                 _ => JobOutCome::Failure,
             };
 
-            info!("{:?}", output);
-
-            let (output, _output_error) = match output {
+            let output = match output {
                 Some(output) => {
-                    let (output, output_error) = (output.stdout, output.stderr);
-                    (
-                        String::from_utf8(output).unwrap_or_default(),
-                        String::from_utf8(output_error).unwrap_or_default(),
-                    )
+                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                    if !stderr.is_empty() {
+                        stderr
+                    } else {
+                        String::from_utf8_lossy(&output.stdout).to_string()
+                    }
                 }
-                None => (String::new(), String::new()),
+                None => String::new(),
             };
 
             let end_time = DateTime::now();
