@@ -30,7 +30,7 @@ function renderAgentsTable(params = {}) {
                 let div = '<div class="agents-list">';
 
                 data.forEach(item => {
-                    div += '<div class="agent-card';
+                    div += `<div onclick="window.location='/edit_agent?id=${item['_id']['$oid']}'" class="agent-card`;
                     if(item["status"] == 1) {
                         div += ' agent-online';
                     } else {

@@ -85,3 +85,14 @@ pub async fn agents_data(
         "current_page": page,
     }))
 }
+
+#[get("/edit_agent?<id>")]
+pub fn edit_agent(state: &State<WebState>, id: &str) -> Template {
+    Template::render(
+        "edit_agent",
+        context! {
+            page_name: "Edit Agent",
+            agent_id: id.to_string(),
+        },
+    )
+}
