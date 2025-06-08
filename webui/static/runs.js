@@ -10,6 +10,27 @@ function clearOutcomeFilter() {
     window.location = url.toString();
 }
 
+function showRunOutputDialog(runId) {
+    const url = `/runs_output?id=${runId}`;
+    fetch(url)
+        .then(data => {
+            if (data && data.output) {
+                const dialog = document.createElement('div');
+                dialog.className = 'output-dialog';
+                dialog.innerHTML = `<h2>Run Output</h2><pre>${data}</pre>`;
+                document.body.appendChild(dialog);
+                dialog.addEventListener('click', () => {
+                    document.body.removeChild(dialog);
+                });
+            } else {
+                alert("No output available for this run.");
+            }
+        })
+        .catch(error => {
+            alert(`Error loading output: ${error.message}`);
+        });
+}
+
 function renderRunsTable(params = {}) {
     // Append filter string to the URL if provided
     const url = "/runs_data";
@@ -71,7 +92,9 @@ function renderRunsTable(params = {}) {
                     }
                     table += `<td class="utc-date" data-timestamp="${start_at_value}">${start_at_value}</td>`;
                     table += `<td class="utc-date" data-timestamp="${completed_at_value}">${completed_at_value}</td>`;
-                    table += `<td><a href=\"/runs_output?id=${item["_id"]['$oid']}\" class=\"btn btn-primary\" target=\"_blank\">Output</a></td>`;
+                    table += `<td>
+                        <button class="btn btn-primary" onclick="showRunOutputDialog('${item["_id"]['$oid']}')">Output</button>
+                    </td>`;
                     table += '</tr>';
                 });
 
