@@ -14,13 +14,14 @@ function showRunOutputDialog(runId) {
     const url = `/runs_output?id=${runId}`;
     fetch(url)
         .then(data => {
-            if (data && data.output) {
-                const dialog = document.createElement('div');
-                dialog.className = 'output-dialog';
-                dialog.innerHTML = `<h2>Run Output</h2><pre>${data}</pre>`;
-                document.body.appendChild(dialog);
-                dialog.addEventListener('click', () => {
-                    document.body.removeChild(dialog);
+            if (data) {
+                data.text().then(text => {
+                    const myDialog = document.getElementById('myDialog');
+                    const content = document.getElementById('dialog-content');
+                    let outputHTML = "Output for Run ID: " + runId + "<br><br>";
+                    outputHTML += "<pre style='white-space: pre-wrap; word-wrap: break-word;'>" + text + "</pre><br>";
+                    content.innerHTML = outputHTML;
+                    myDialog.showModal();
                 });
             } else {
                 alert("No output available for this run.");

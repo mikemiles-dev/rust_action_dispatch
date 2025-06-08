@@ -37,10 +37,7 @@ pub async fn runs_page(
 
 #[get("/runs_output?<id>")]
 pub async fn runs_output(state: &State<WebState>, id: Option<String>) -> String {
-    let collection = match state
-        .datastore
-        .get_collection::<RunsV1>("runs")
-        .await {
+    let collection = match state.datastore.get_collection::<RunsV1>("runs").await {
         Ok(coll) => coll,
         Err(_) => {
             return "Error retrieving runs collection".to_string();
@@ -48,13 +45,15 @@ pub async fn runs_output(state: &State<WebState>, id: Option<String>) -> String 
     };
     let object_id = match mongodb::bson::oid::ObjectId::parse_str(&id.unwrap_or_default()) {
         Ok(oid) => oid,
-        Err(_) => {
+        Err(e) => {
+            println!("Error parsing ObjectId: {}", e);
             return "Invalid ObjectId format".to_string();
         }
     };
     let run_entry = match collection
         .find_one(mongodb::bson::doc! { "_id": object_id })
-        .await {
+        .await
+    {
         Ok(Some(entry)) => entry,
         _ => {
             return "Run entry not found".to_string();

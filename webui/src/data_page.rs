@@ -62,8 +62,6 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             }
         }
 
-        println!("FFF {:?}", filter_doc);
-
         let total_count = collection
             .count_documents(filter_doc.clone())
             .await

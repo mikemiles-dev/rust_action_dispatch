@@ -6,6 +6,22 @@
 
     <script src="/static/core.js"></script>
 
+  <dialog id="myDialog">
+       <div class="dialog-content" id="dialog-content">
+           <h2>Welcome to My Dialog!</h2>
+           <p>This is a simple dialog that sits in the middle of the screen.</p>
+       </div>
+       <div class="dialog-actions">
+           <button class="confirm" onclick="closeMyDialog()">Ok</button>
+       </div>
+   </dialog>
+
+  <script>
+      function closeMyDialog() {
+        myDialog.close();
+    }
+  </script>
+
     <title>Rust Action Dispatch - {{ page_name }}</title>
   </head>
   <body>
