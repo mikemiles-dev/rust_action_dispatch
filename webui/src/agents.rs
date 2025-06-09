@@ -1,3 +1,4 @@
+use mongodb::bson::{doc, oid::ObjectId};
 use rocket::State;
 use rocket::get;
 use rocket::serde::json::Json;
@@ -87,12 +88,32 @@ pub async fn agents_data(
 }
 
 #[get("/edit_agent?<id>")]
-pub fn edit_agent(state: &State<WebState>, id: &str) -> Template {
-    Template::render(
-        "edit_agent",
-        context! {
-            page_name: "Edit Agent",
-            agent_id: id.to_string(),
-        },
-    )
+pub async fn edit_agent(state: &State<WebState>, id: &str) -> Template {
+    let render = |error: &str, agent: Option<AgentV1>| {
+        Template::render(
+            "edit_agent",
+            context! {
+                page_name: "Edit Agent",
+                agent_id: id.to_string(),
+                agent,
+                error: error.to_string(),
+            },
+        )
+    };
+
+    let agent_collection = match state.datastore.get_collection::<AgentV1>("agents").await {
+        Ok(coll) => coll,
+        Err(_) => return render("Failed to access agents collection", None),
+    };
+
+    let object_id = match ObjectId::parse_str(id) {
+        Ok(oid) => oid,
+        Err(_) => return render("Invalid agent ID format", None),
+    };
+
+    match agent_collection.find_one(doc! { "_id": object_id }).await {
+        Ok(Some(agent)) => render("", Some(agent)),
+        Ok(None) => render("Agent not found", None),
+        Err(e) => render(&format!("Error fetching agent: {}", e), None),
+    }
 }
