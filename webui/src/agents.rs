@@ -1,7 +1,10 @@
 use mongodb::bson::{doc, oid::ObjectId};
 use rocket::State;
-use rocket::get;
+use rocket::form::{Form, FromForm};
+use rocket::response::Redirect;
 use rocket::serde::json::Json;
+use rocket::uri;
+use rocket::{get, post};
 use rocket_dyn_templates::{Template, context};
 use serde_json::json;
 
@@ -10,6 +13,42 @@ use std::collections::HashMap;
 use crate::WebState;
 use crate::data_page::{DataPage, DataPageParams};
 use core_logic::datastore::agents::AgentV1;
+
+#[derive(FromForm, Debug)]
+pub struct AgentForm {
+    pub name: String,
+    pub hostname: String,
+    pub port: Option<u16>,
+    pub status: Option<String>,
+}
+
+#[post("/agents", data = "<form>")]
+pub async fn post_agents(state: &State<WebState>, form: Form<AgentForm>) -> Redirect {
+    // let agent = AgentV1 {
+    //     _id: None,
+    //     name: form.name.clone(),
+    //     hostname: form.hostname.clone(),
+    //     port: form.port,
+    //     status: form.status.clone().unwrap_or_else(|| "unknown".to_string()),
+    //     last_ping: None,
+    //     // Add other fields as needed
+    // };
+
+    // if let Ok(collection) = state.datastore.get_collection::<AgentV1>("agents").await {
+    //     let _ = collection.insert_one(agent).await;
+    // }
+
+    println!("Received agent form: {:?}", form);
+
+    Redirect::to(uri!(agents_page(
+        None::<u32>,
+        None::<u64>,
+        None::<u64>,
+        None::<String>,
+        None::<String>,
+        None::<String>
+    )))
+}
 
 #[get("/agents?<page>&<range_start>&<range_end>&<filter>&<sort>&<status_filter>")]
 pub async fn agents_page(
