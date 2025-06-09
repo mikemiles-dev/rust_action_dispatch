@@ -23,25 +23,9 @@
             <label class="form-label" for="agent_port">Port</label>
             <input type="number" id="agent_port" name="port" class="form-control" value="{{ agent.port }}">
         </div>
-        <div class="form-group">
-            Last Ping: <span class="utc-date" data-timestamp="{{ agent.last_ping['$date']['$numberLong'] }}">{{ agent.last_ping['$date']['$numberLong'] | default('Never') }}</span>
-        </div>
-        <div class="form-group">
-            Status:
-            {% if agent.status == 1 %}
-                <span class="badge badge-success">Online</span>
-            {% else %}
-                <span class="badge badge-error">Offline</span>
-            {% endif %}
-        </div>
-        <br>
         <button type="submit" class="btn btn-primary">Save</button>
         <a href="javascript:history.back()" class="btn btn-secondary">Cancel</a>
     </form>
-
-    <script>
-        DateTimeUtils.convertUtcDateElements();
-    </script>
 
 {% endif %}
 
