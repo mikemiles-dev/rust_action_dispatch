@@ -154,7 +154,12 @@ impl AgentManager {
 
         fetched_agents
             .iter()
-            .filter(|agent| !self.connected_agents.contains_key(agent))
+            .filter(|agent| {
+                !self.connected_agents.keys().any(|connected_agent| {
+                    connected_agent.address.port() == agent.address.port()
+                        && connected_agent.address.ip() == agent.address.ip()
+                })
+            })
             .cloned()
             .collect()
     }
@@ -353,45 +358,45 @@ impl AgentManager {
 
     /// Check if connected agents are still reachable
     pub async fn start(self) {
-        const CONNECT_CHECK_INTERVAL_SECONDS: u64 = 1; // Interval to check for new agents
-        const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 1; // Interval to check for unconnected agents
+        const AGENT_PING_KEEP_ALIVE: u64 = 5; // Interval to ping agents
+        const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 5; // Interval to check for unconnected agents
         const JOB_DISPATCH_INTERVAL_SECONDS: u64 = 1; // Interval to check for jobs to dispatch
-        const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 15; // Interval to check for new agents in the database
+        //const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 15; // Interval to check for new agents in the database
 
         let manager = Arc::new(Mutex::new(self)); // Ownership of `self` is moved here
 
-        // Spawn a task to periodically check for new agents in the database
-        let manager_clone = manager.clone();
-        spawn(async move {
-            loop {
-                let manager_lock = manager_clone.lock().await;
-                debug!("Checking for new agents in the database...");
-                if let Err(fetch_agents_error) = manager_lock.fetch_database_agents().await {
-                    error!("Error fetching agents: {}", fetch_agents_error);
-                }
-                info!(
-                    "Agents that are connected: {{{}}}",
-                    manager_lock
-                        .connected_agents
-                        .keys()
-                        .take(100) // Limit to 100 for logging
-                        .map(|a| format!("{}:{}", a.name, a.address))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                );
-                drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
-                sleep(Duration::from_secs(AGENT_DB_CHECK_INTERVAL_SECONDS)).await;
-            }
-        });
+        // // Spawn a task to periodically check for new agents in the database
+        // let manager_clone = manager.clone();
+        // spawn(async move {
+        //     loop {
+        //         let manager_lock = manager_clone.lock().await;
+        //         debug!("Checking for new agents in the database...");
+        //         if let Err(fetch_agents_error) = manager_lock.fetch_database_agents().await {
+        //             error!("Error fetching agents: {}", fetch_agents_error);
+        //         }
+        //         info!(
+        //             "Agents that are connected: {{{}}}",
+        //             manager_lock
+        //                 .connected_agents
+        //                 .keys()
+        //                 .take(100) // Limit to 100 for logging
+        //                 .map(|a| format!("{}:{}", a.name, a.address))
+        //                 .collect::<Vec<_>>()
+        //                 .join(", ")
+        //         );
+        //         drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
+        //         sleep(Duration::from_secs(AGENT_DB_CHECK_INTERVAL_SECONDS)).await;
+        //     }
+        // });
 
-        // Spawn a task to periodically check for unconnected agents
+        // Pings Agents
         let manager_clone = manager.clone();
         spawn(async move {
             loop {
                 let mut manager_lock = manager_clone.lock().await;
                 manager_lock.ping_existing_agents().await;
                 drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
-                sleep(Duration::from_secs(CONNECT_CHECK_INTERVAL_SECONDS)).await;
+                sleep(Duration::from_secs(AGENT_PING_KEEP_ALIVE)).await;
             }
         });
 

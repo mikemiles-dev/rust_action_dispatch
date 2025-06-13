@@ -40,3 +40,11 @@
   font-size: 0.9em;
   color: #cccccc;
 }
+
+.form-status-success {
+  color: #2d9b52;
+}
+
+.form-status-error {
+  color: #b52d2d;
+}

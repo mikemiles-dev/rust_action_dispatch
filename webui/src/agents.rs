@@ -1,9 +1,7 @@
 use mongodb::bson::{doc, oid::ObjectId};
 use rocket::State;
 use rocket::form::{Form, FromForm};
-use rocket::response::Redirect;
 use rocket::serde::json::Json;
-use rocket::uri;
 use rocket::{get, post};
 use rocket_dyn_templates::{Template, context};
 use serde_json::json;
@@ -16,38 +14,81 @@ use core_logic::datastore::agents::AgentV1;
 
 #[derive(FromForm, Debug)]
 pub struct AgentForm {
+    pub id: String,
     pub name: String,
     pub hostname: String,
-    pub port: Option<u16>,
-    pub status: Option<String>,
+    pub port: u16,
 }
 
 #[post("/agents", data = "<form>")]
-pub async fn post_agents(state: &State<WebState>, form: Form<AgentForm>) -> Redirect {
-    // let agent = AgentV1 {
-    //     _id: None,
-    //     name: form.name.clone(),
-    //     hostname: form.hostname.clone(),
-    //     port: form.port,
-    //     status: form.status.clone().unwrap_or_else(|| "unknown".to_string()),
-    //     last_ping: None,
-    //     // Add other fields as needed
-    // };
+pub async fn post_agents(
+    state: &State<WebState>,
+    form: Form<AgentForm>,
+) -> Result<String, (rocket::http::Status, String)> {
+    println!("Received form: {:?}", form);
+    let agent_collection = state
+        .datastore
+        .get_collection::<AgentV1>("agents")
+        .await
+        .map_err(|e| {
+            (
+                rocket::http::Status::InternalServerError,
+                format!("Error accessing agents collection: {}", e),
+            )
+        })?;
 
-    // if let Ok(collection) = state.datastore.get_collection::<AgentV1>("agents").await {
-    //     let _ = collection.insert_one(agent).await;
-    // }
+    if form.id.is_empty() {
+        let new_agent = AgentV1 {
+            name: form.name.clone(),
+            hostname: form.hostname.clone(),
+            port: form.port,
+            ..Default::default()
+        };
+        agent_collection.insert_one(new_agent).await.map_err(|e| {
+            (
+                rocket::http::Status::InternalServerError,
+                format!("Error inserting agent: {}", e),
+            )
+        })?;
+    } else {
+        let object_id = ObjectId::parse_str(&form.id).map_err(|_| {
+            (
+                rocket::http::Status::BadRequest,
+                "Invalid agent ID format".to_string(),
+            )
+        })?;
+        let agent = agent_collection
+            .find_one(doc! { "_id": object_id })
+            .await
+            .map_err(|e| {
+                (
+                    rocket::http::Status::InternalServerError,
+                    format!("Error fetching agent: {}", e),
+                )
+            })?;
+        agent.ok_or((
+            rocket::http::Status::NotFound,
+            "Agent not found".to_string(),
+        ))?;
+        let update_doc = doc! {
+            "$set": {
+                "name": &form.name,
+                "hostname": &form.hostname,
+                "port": form.port as i32,
+            }
+        };
+        agent_collection
+            .update_one(doc! { "_id": &object_id }, update_doc)
+            .await
+            .map_err(|e| {
+                (
+                    rocket::http::Status::InternalServerError,
+                    format!("Error updating agent: {}", e),
+                )
+            })?;
+    };
 
-    println!("Received agent form: {:?}", form);
-
-    Redirect::to(uri!(agents_page(
-        None::<u32>,
-        None::<u64>,
-        None::<u64>,
-        None::<String>,
-        None::<String>,
-        None::<String>
-    )))
+    Ok("Success".to_string())
 }
 
 #[get("/agents?<page>&<range_start>&<range_end>&<filter>&<sort>&<status_filter>")]

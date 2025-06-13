@@ -33,6 +33,20 @@ pub struct AgentV1 {
     pub version: u32,
 }
 
+impl Default for AgentV1 {
+    fn default() -> Self {
+        Self {
+            id: None,
+            name: String::new(),
+            hostname: String::new(),
+            last_ping: DateTime::from_millis(0),
+            status: Status::Offline,
+            port: 0,
+            version: 1,
+        }
+    }
+}
+
 impl From<Status> for i32 {
     fn from(status: Status) -> Self {
         status as i32
