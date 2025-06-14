@@ -57,6 +57,7 @@ use core_logic::datastore::{
     agents::{AgentV1, Status as AgentStatus},
     jobs::{JobV1, Status},
 };
+use tokio::io::AsyncReadExt;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct ConnectedAgent {
@@ -200,10 +201,34 @@ impl AgentManager {
             let message = Message::Ping;
             match message.tcp_write(stream).await {
                 Ok(_) => {
-                    debug!("Ping sent to agent {} successfully!", agent.address);
-                    // Update the agent's last ping in the database
-                    if let Err(e) = Self::update_agent_online(datastore.clone(), agent).await {
-                        error!("Failed to update last ping for agent {}: {}", agent.name, e);
+                    // Wait for a response from the agent
+                    let mut buf = [0u8; 2]; // Adjust buffer size as needed for your protocol
+                    match stream.read_exact(&mut buf).await {
+                        Ok(_) => {
+                            // Check if the response is an OK (you may want to define a proper protocol)
+                            // For example, let's assume the agent sends "OK\n"
+                            if &buf == b"OK" {
+                                debug!("Received OK from agent {}!", agent.address);
+                                if let Err(e) =
+                                    Self::update_agent_online(datastore.clone(), agent).await
+                                {
+                                    error!(
+                                        "Failed to update last ping for agent {}: {}",
+                                        agent.name, e
+                                    );
+                                }
+                            } else {
+                                error!(
+                                    "Unexpected response from agent {}: {:?}",
+                                    agent.address, buf
+                                );
+                                agents_to_remove.push(agent.clone());
+                            }
+                        }
+                        Err(e) => {
+                            error!("No response from agent {}: {}", agent.address, e);
+                            agents_to_remove.push(agent.clone());
+                        }
                     }
                 }
                 Err(e) => {
@@ -231,7 +256,7 @@ impl AgentManager {
         let filter = doc! { "name": &agent.name };
         let update = doc! {
             "$set": {
-                "last_ping": DateTime::now(),
+                //"last_ping": DateTime::now(),
                 "status": AgentStatus::Offline as i32, // Update status to Offline
             }
         };

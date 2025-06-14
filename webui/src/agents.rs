@@ -199,7 +199,7 @@ pub async fn edit_agent(state: &State<WebState>, id: &str) -> Template {
 }
 
 #[get("/agents/add")]
-pub async fn add_agent(state: &State<WebState>) -> Template {
+pub async fn add_agent(_state: &State<WebState>) -> Template {
     Template::render(
         "edit_agent",
         context! {

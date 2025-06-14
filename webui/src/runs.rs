@@ -43,7 +43,7 @@ pub async fn runs_output(state: &State<WebState>, id: Option<String>) -> String 
             return "Error retrieving runs collection".to_string();
         }
     };
-    let object_id = match mongodb::bson::oid::ObjectId::parse_str(&id.unwrap_or_default()) {
+    let object_id = match mongodb::bson::oid::ObjectId::parse_str(id.unwrap_or_default()) {
         Ok(oid) => oid,
         Err(e) => {
             println!("Error parsing ObjectId: {}", e);
@@ -62,6 +62,7 @@ pub async fn runs_output(state: &State<WebState>, id: Option<String>) -> String 
     run_entry.output
 }
 
+#[allow(clippy::too_many_arguments)]
 #[get("/runs_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<outcome_filter>&<order>")]
 pub async fn runs_data(
     state: &State<WebState>,
