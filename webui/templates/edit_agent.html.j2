@@ -14,15 +14,15 @@
         <input type="hidden" name="id" value="{{ agent_id }}">
         <div class="form-group">
             <label class="form-label" for="name">Name</label>
-            <input type="text" id="name" name="name" class="form-control" value="{{ agent.name }}">
+            <input type="text" id="name" name="name" class="form-control" value="{{ agent.name if agnet is defined else '' }}">
         </div>
         <div class="form-group">
             <label class="form-label" for="hostname">Hostname</label>
-            <input type="text" id="hostname" name="hostname" class="form-control" value="{{ agent.hostname }}">
+            <input type="text" id="hostname" name="hostname" class="form-control" value="{{ agent.hostname if agent is defined else '' }}">
         </div>
         <div class="form-group">
             <label class="form-label" for="port">Port</label>
-            <input type="number" id="port" name="port" class="form-control" value="{{ agent.port }}">
+            <input type="number" id="port" name="port" class="form-control" value="{{ agent.port if agent is defined else '' }}">
         </div>
         <a href="#" class="btn btn-secondary" onclick="submitAndStay(event)">Save</a>
         <a href="#" class="btn btn-secondary">Delete</a>
@@ -30,7 +30,7 @@
     </form>
 
         <br><br>
-        {% include "edit_status" %}
+        {% include "status" %}
 
     </form>
     <script>
@@ -42,25 +42,28 @@
             method: form.method,
             body: formData,
         })
-        .then(response => response.text())
+        .then(response => {
+            if (!response.ok) {
+                // If status is 500 or any error, show in error
+                return response.text().then(text => {
+                    throw new Error(text || 'Server error');
+                });
+            }
+            return response.text();
+        })
         .then(data => {
             const statusError = document.getElementById('status-error');
             statusError.style.display = 'none'; // Hide any previous error
             const statusSuccess = document.getElementById('status-success');
             statusSuccess.innerHTML = data;
             statusSuccess.style.display = 'block';
-            // Optionally update part of the page or show a message
-            // For example, reload the status include:
-            //location.reload(); // Or handle more gracefully if needed
         })
         .catch(error => {
-            alert(error);
             const statusSuccess = document.getElementById('status-success');
             statusSuccess.style.display = 'none'; // Hide any previous success
             const statusError = document.getElementById('status-error');
-            statusError.innerHTML = error;
+            statusError.innerHTML = error.message;
             statusError.style.display = 'block';
-
         });
     }
     </script>

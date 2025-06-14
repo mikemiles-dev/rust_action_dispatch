@@ -12,7 +12,7 @@ function clearStatusFilter() {
 
 function renderAgentsTable(params = {}) {
     // Append filter string to the URL if provided
-    const url = "/agents_data";
+    const url = "/agents/data";
     AjaxUtils.getJsonData(url, params)
         .then(data => {
             const container = document.getElementById("items");
@@ -30,7 +30,7 @@ function renderAgentsTable(params = {}) {
                 let div = '<div class="agents-list">';
 
                 data.forEach(item => {
-                    div += `<div onclick="window.location='/edit_agent?id=${item['_id']['$oid']}'" class="agent-card`;
+                    div += `<div onclick="window.location='/agents/edit?id=${item['_id']['$oid']}'" class="agent-card`;
                     if(item["status"] == 1) {
                         div += ' agent-online';
                     } else {

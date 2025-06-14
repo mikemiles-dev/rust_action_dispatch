@@ -115,7 +115,7 @@ pub async fn agents_page(
 }
 
 #[allow(clippy::too_many_arguments)]
-#[get("/agents_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>&<status_filter>")]
+#[get("/agents/data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>&<status_filter>")]
 pub async fn agents_data(
     state: &State<WebState>,
     page: Option<u32>,
@@ -167,7 +167,7 @@ pub async fn agents_data(
     }))
 }
 
-#[get("/edit_agent?<id>")]
+#[get("/agents/edit?<id>")]
 pub async fn edit_agent(state: &State<WebState>, id: &str) -> Template {
     let render = |error: &str, agent: Option<AgentV1>| {
         Template::render(
@@ -196,4 +196,14 @@ pub async fn edit_agent(state: &State<WebState>, id: &str) -> Template {
         Ok(None) => render("Agent not found", None),
         Err(e) => render(&format!("Error fetching agent: {}", e), None),
     }
+}
+
+#[get("/agents/add")]
+pub async fn add_agent(state: &State<WebState>) -> Template {
+    Template::render(
+        "edit_agent",
+        context! {
+            page_name: "Add Agent",
+        },
+    )
 }
