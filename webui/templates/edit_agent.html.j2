@@ -10,7 +10,7 @@
     <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
 {% else %}
 
-    <form id="edit-agent-form" method="post" action="/agents">
+    <form id="edit-form" method="post" action="/agents">
         <input type="hidden" name="id" value="{{ agent_id }}">
         <div class="form-group">
             <label class="form-label" for="name">Name</label>
@@ -25,7 +25,7 @@
             <input type="number" id="port" name="port" class="form-control" value="{{ agent.port if agent is defined else '' }}">
         </div>
         <a href="#" class="btn btn-secondary" onclick="submitAndStay(event)">Save</a>
-        <a href="#" class="btn btn-secondary">Delete</a>
+        <a href="javascript:deleteItem('/agents/{{ agent_id }}', 'agent')" class="btn btn-secondary">Delete</a>
         <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
     </form>
 
@@ -35,9 +35,26 @@
     </form>
     <script>
 
+    function deleteItem(url, kind) {
+        if (confirm("Are you sure you want to delete this " + kind + "?")) {
+            fetch(url, {
+                method: 'DELETE',
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to delete ' + kind);
+                }
+                history.back();
+            })
+            .catch(error => {
+                alert(error.message);
+            });
+        }
+    }
+
     function submitAndStay(event) {
         event.preventDefault();
-        const form = document.getElementById('edit-agent-form');
+        const form = document.getElementById('edit-form');
         const formData = new FormData(form);
         fetch(form.action, {
             method: form.method,

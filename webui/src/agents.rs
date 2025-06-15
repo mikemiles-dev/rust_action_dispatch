@@ -1,8 +1,8 @@
 use mongodb::bson::{doc, oid::ObjectId};
-use rocket::State;
 use rocket::form::{Form, FromForm};
 use rocket::serde::json::Json;
-use rocket::{get, post};
+use rocket::{State, uri};
+use rocket::{delete, get, post};
 use rocket_dyn_templates::{Template, context};
 use serde_json::json;
 
@@ -208,11 +208,11 @@ pub async fn add_agent(_state: &State<WebState>) -> Template {
     )
 }
 
-#[get("/agents/delete?<id>")]
+#[delete("/agents/<id>")]
 pub async fn delete_agent(
     state: &State<WebState>,
     id: &str,
-) -> Result<Template, (rocket::http::Status, String)> {
+) -> Result<rocket::response::Redirect, (rocket::http::Status, String)> {
     let agent_collection = state
         .datastore
         .get_collection::<AgentV1>("agents")
@@ -241,11 +241,12 @@ pub async fn delete_agent(
             )
         })?;
 
-    Ok(Template::render(
-        "delete_success",
-        context! {
-            page_name: "Delete Agent",
-            message: "Agent deleted successfully",
-        },
-    ))
+    Ok(rocket::response::Redirect::to(uri!(agents_page(
+        None::<u32>,
+        None::<u64>,
+        None::<u64>,
+        None::<String>,
+        None::<String>,
+        None::<String>
+    ))))
 }
