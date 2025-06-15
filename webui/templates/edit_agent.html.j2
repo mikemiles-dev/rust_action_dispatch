@@ -14,7 +14,7 @@
         <input type="hidden" name="id" value="{{ agent_id }}">
         <div class="form-group">
             <label class="form-label" for="name">Name</label>
-            <input type="text" id="name" name="name" class="form-control" value="{{ agent.name if agnet is defined else '' }}">
+            <input type="text" id="name" name="name" class="form-control" value="{{ agent.name if agent is defined else '' }}">
         </div>
         <div class="form-group">
             <label class="form-label" for="hostname">Hostname</label>
@@ -34,6 +34,7 @@
 
     </form>
     <script>
+
     function submitAndStay(event) {
         event.preventDefault();
         const form = document.getElementById('edit-agent-form');

@@ -41,7 +41,9 @@ function renderAgentsTable(params = {}) {
                     div += `<img width="100px;" src="/agent.png"><br>`;
                     div += `<span class="agent-host-info">${item["hostname"]}:${item["port"]}</span><br>`;
                     div += '<div class="agent-online-info">';
-                    div += `Last Ping: <span class="utc-date" data-timestamp="${item["last_ping"]["$date"]["$numberLong"]}">${item["last_ping"]["$date"]["$numberLong"]}</span><br><br>`;
+                    if (item["last_ping"] && item["last_ping"]["$date"] && item["last_ping"]["$date"]["$numberLong"] !== "0") {
+                        div += `Last Ping: <span class="utc-date" data-timestamp="${item["last_ping"]["$date"]["$numberLong"]}">${item["last_ping"]["$date"]["$numberLong"]}</span><br><br>`;
+                    }
                     if (item["status"] == 1) {
                         div += 'Online';
                     } else {

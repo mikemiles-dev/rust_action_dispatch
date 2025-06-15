@@ -207,3 +207,45 @@ pub async fn add_agent(_state: &State<WebState>) -> Template {
         },
     )
 }
+
+#[get("/agents/delete?<id>")]
+pub async fn delete_agent(
+    state: &State<WebState>,
+    id: &str,
+) -> Result<Template, (rocket::http::Status, String)> {
+    let agent_collection = state
+        .datastore
+        .get_collection::<AgentV1>("agents")
+        .await
+        .map_err(|e| {
+            (
+                rocket::http::Status::InternalServerError,
+                format!("Error accessing agents collection: {}", e),
+            )
+        })?;
+
+    let object_id = ObjectId::parse_str(id).map_err(|_| {
+        (
+            rocket::http::Status::BadRequest,
+            "Invalid agent ID format".to_string(),
+        )
+    })?;
+
+    agent_collection
+        .delete_one(doc! { "_id": object_id })
+        .await
+        .map_err(|e| {
+            (
+                rocket::http::Status::InternalServerError,
+                format!("Error deleting agent: {}", e),
+            )
+        })?;
+
+    Ok(Template::render(
+        "delete_success",
+        context! {
+            page_name: "Delete Agent",
+            message: "Agent deleted successfully",
+        },
+    ))
+}

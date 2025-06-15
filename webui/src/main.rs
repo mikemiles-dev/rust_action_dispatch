@@ -14,7 +14,7 @@ use rocket_dyn_templates::{Template, context, minijinja::Environment};
 use std::env;
 use std::path::{Path, PathBuf};
 
-use agents::{add_agent, agents_data, agents_page, edit_agent, post_agents};
+use agents::{add_agent, agents_data, agents_page, delete_agent, edit_agent, post_agents};
 use core_logic::datastore::Datastore;
 use runs::{runs_data, runs_output, runs_page};
 
@@ -76,7 +76,8 @@ async fn rocket() -> _ {
                 runs_data,
                 agents_data,
                 post_agents,
-                add_agent
+                add_agent,
+                delete_agent
             ],
         )
         .mount("/", rocket::routes![static_files])
