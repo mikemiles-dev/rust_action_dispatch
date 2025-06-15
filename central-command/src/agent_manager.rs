@@ -70,20 +70,9 @@ impl TryFrom<AgentV1> for ConnectedAgent {
 
     fn try_from(agent: AgentV1) -> Result<Self, Self::Error> {
         let addr = format!("{}:{}", agent.hostname, agent.port);
-        let mut socket_addr = match addr.to_socket_addrs() {
-            Ok(addr) => addr,
-            Err(e) => {
-                error!("Failed to parse address {}: {}", addr, e);
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    format!("Failed to parse address: {}", e),
-                ));
-            }
-        };
-        let socket_addr = socket_addr.next().ok_or(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "Invalid address",
-        ))?;
+        let socket_addr = addr.to_socket_addrs()?.next().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid address")
+        })?;
         Ok(ConnectedAgent {
             name: agent.name,
             address: socket_addr,
@@ -164,24 +153,20 @@ impl AgentManager {
             .cloned()
             .collect()
     }
-
     /// Connect to unconnected agents
-    // This function attempts to connect to each unconnected agent and adds them to the `connected_agents` map
+    /// Attempts to connect to each unconnected agent and adds them to the `connected_agents` map
     async fn connect_unconnected_agents(&mut self, unconnected_agents: Vec<ConnectedAgent>) {
-        for agent in unconnected_agents.into_iter() {
+        let datastore = self.datastore.clone();
+        for agent in unconnected_agents {
             match TcpStream::connect(agent.address).await {
                 Ok(stream) => {
                     info!("Connected to agent {}!", agent.address);
-                    self.connected_agents.insert(agent.clone(), stream);
+                    self.connected_agents.insert(agent, stream);
                 }
                 Err(e) => {
                     error!("Error connecting to agent {}: {}", agent.address, e);
-                    let datastore = self.datastore.clone();
-                    if let Err(agent_error) = Self::update_agent_offline(datastore, &agent).await {
-                        error!(
-                            "Failed to update agent {} to offline: {}",
-                            agent.name, agent_error
-                        );
+                    if let Err(err) = Self::update_agent_offline(datastore.clone(), &agent).await {
+                        error!("Failed to update agent {} to offline: {}", agent.name, err);
                     }
                 }
             }
@@ -377,33 +362,8 @@ impl AgentManager {
         const AGENT_PING_KEEP_ALIVE: u64 = 5; // Interval to ping agents
         const UNCONNECT_CHECK_INTERVAL_SECONDS: u64 = 5; // Interval to check for unconnected agents
         const JOB_DISPATCH_INTERVAL_SECONDS: u64 = 1; // Interval to check for jobs to dispatch
-        //const AGENT_DB_CHECK_INTERVAL_SECONDS: u64 = 15; // Interval to check for new agents in the database
 
         let manager = Arc::new(Mutex::new(self)); // Ownership of `self` is moved here
-
-        // // Spawn a task to periodically check for new agents in the database
-        // let manager_clone = manager.clone();
-        // spawn(async move {
-        //     loop {
-        //         let manager_lock = manager_clone.lock().await;
-        //         debug!("Checking for new agents in the database...");
-        //         if let Err(fetch_agents_error) = manager_lock.fetch_database_agents().await {
-        //             error!("Error fetching agents: {}", fetch_agents_error);
-        //         }
-        //         info!(
-        //             "Agents that are connected: {{{}}}",
-        //             manager_lock
-        //                 .connected_agents
-        //                 .keys()
-        //                 .take(100) // Limit to 100 for logging
-        //                 .map(|a| format!("{}:{}", a.name, a.address))
-        //                 .collect::<Vec<_>>()
-        //                 .join(", ")
-        //         );
-        //         drop(manager_lock); // Explicitly drop the lock to avoid holding it while sleeping
-        //         sleep(Duration::from_secs(AGENT_DB_CHECK_INTERVAL_SECONDS)).await;
-        //     }
-        // });
 
         // Pings Agents
         let manager_clone = manager.clone();
