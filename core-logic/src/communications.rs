@@ -117,6 +117,7 @@ pub enum Message {
 pub enum MessageError {
     SerializationError(Error),
     WriteError(tokio::io::Error),
+    AcknowledgeError(String),
 }
 
 impl std::fmt::Display for MessageError {
@@ -124,6 +125,7 @@ impl std::fmt::Display for MessageError {
         match self {
             MessageError::SerializationError(e) => write!(f, "Serialization error: {}", e),
             MessageError::WriteError(e) => write!(f, "Write error: {}", e),
+            MessageError::AcknowledgeError(e) => write!(f, "Acknowledge error: {}", e),
         }
     }
 }

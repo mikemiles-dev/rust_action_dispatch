@@ -51,7 +51,7 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use std::time::Duration;
 
-use core_logic::communications::{DispatchJob, Message};
+use core_logic::communications::{DispatchJob, Message, MessageError};
 use core_logic::datastore::{
     Datastore,
     agents::{AgentV1, Status as AgentStatus},
@@ -199,41 +199,22 @@ impl AgentManager {
             debug!("Pinging agent {}!", agent.address);
 
             let message = Message::Ping;
-            match message.tcp_write(stream).await {
+            match Self::write_to_agent(stream, &message).await {
                 Ok(_) => {
-                    // Wait for a response from the agent
-                    let mut buf = [0u8; 2]; // Adjust buffer size as needed for your protocol
-                    match stream.read_exact(&mut buf).await {
-                        Ok(_) => {
-                            // Check if the response is an OK (you may want to define a proper protocol)
-                            // For example, let's assume the agent sends "OK\n"
-                            if &buf == b"OK" {
-                                debug!("Received OK from agent {}!", agent.address);
-                                if let Err(e) =
-                                    Self::update_agent_online(datastore.clone(), agent).await
-                                {
-                                    error!(
-                                        "Failed to update last ping for agent {}: {}",
-                                        agent.name, e
-                                    );
-                                }
-                            } else {
-                                error!(
-                                    "Unexpected response from agent {}: {:?}",
-                                    agent.address, buf
-                                );
-                                agents_to_remove.push(agent.clone());
-                            }
-                        }
-                        Err(e) => {
-                            error!("No response from agent {}: {}", agent.address, e);
-                            agents_to_remove.push(agent.clone());
-                        }
-                    }
+                    debug!("Agent {} is reachable.", agent.address);
                 }
                 Err(e) => {
-                    error!("Error writing to agent {}: {}", agent.address, e);
-                    agents_to_remove.push(agent.clone()); // Mark agent for removal
+                    error!("Failed to ping agent {}: {}", agent.address, e);
+                    agents_to_remove.push(agent.clone());
+                    continue; // Skip to the next agent
+                }
+            }
+            match Self::update_agent_online(datastore.clone(), agent).await {
+                Ok(_) => {
+                    debug!("Updated agent {} to online status.", agent.name);
+                }
+                Err(e) => {
+                    error!("Failed to update agent {} to online: {}", agent.name, e);
                 }
             }
         }
@@ -310,14 +291,38 @@ impl AgentManager {
             };
             let message = Message::DispatchJob(dispatch_job);
 
-            if let Err(e) = message.tcp_write(stream).await {
-                error!("Error writing to agent {}: {}", agent.address, e);
-                continue; // Skip to the next agent
+            match Self::write_to_agent(stream, &message).await {
+                Ok(_) => {
+                    debug!("Dispatched job to agent {}: {:?}", agent.address, message);
+                }
+                Err(e) => {
+                    error!("Failed to dispatch job to agent {}: {}", agent.address, e);
+                    continue; // Skip to the next agent
+                }
             }
             Self::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
         }
 
         Ok(())
+    }
+
+    async fn write_to_agent(stream: &mut TcpStream, message: &Message) -> Result<(), MessageError> {
+        match message.clone().tcp_write(stream).await {
+            Ok(_) => {
+                // Wait for a response from the agent
+                let mut buf = [0u8; 2]; // Adjust buffer size as needed for your protocol
+                match stream.read_exact(&mut buf).await {
+                    Ok(_) if &buf == b"OK" => Ok(()),
+                    _ => Err(MessageError::AcknowledgeError(
+                        "Failed to receive acknowledgment from agent".to_string(),
+                    )),
+                }
+            }
+            Err(e) => {
+                error!("Error writing to agent: {}", e);
+                Err(e.into())
+            }
+        }
     }
 
     /// Get jobs to run
