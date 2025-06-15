@@ -262,26 +262,16 @@ impl AgentManager {
     }
 
     /// Run a job
-    /// This function takes a job, filters connected agents based on the job's `agents_to_run`,
-    /// and sends a `DispatchJob` message to each agent. It also updates the job's `agents_running` list.
+    /// This function sends a `DispatchJob` message to each required agent and updates the job's `agents_running` list.
     async fn run_job(&mut self, job: &JobV1) -> Result<(), Box<dyn std::error::Error>> {
         let datastore = self.datastore.clone();
+        let agents_to_run: &HashSet<String> = &job.agents_required.iter().cloned().collect();
 
-        let agents_to_run: HashSet<String> = job.agents_required.iter().cloned().collect();
+        for (agent, stream) in self.connected_agents.iter_mut() {
+            if !agents_to_run.contains(&agent.name) {
+                continue;
+            }
 
-        let agent_streams: HashMap<ConnectedAgent, &mut TcpStream> = self
-            .connected_agents
-            .iter_mut()
-            .filter_map(|(agent, stream)| {
-                if agents_to_run.contains(&agent.name) {
-                    Some((agent.clone(), stream))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        for (agent, stream) in agent_streams.into_iter() {
             let dispatch_job = DispatchJob {
                 job_name: job.name.clone(),
                 command: job.command.clone(),
@@ -291,16 +281,12 @@ impl AgentManager {
             };
             let message = Message::DispatchJob(dispatch_job);
 
-            match Self::write_to_agent(stream, &message).await {
-                Ok(_) => {
-                    debug!("Dispatched job to agent {}: {:?}", agent.address, message);
-                }
-                Err(e) => {
-                    error!("Failed to dispatch job to agent {}: {}", agent.address, e);
-                    continue; // Skip to the next agent
-                }
+            if let Err(e) = Self::write_to_agent(stream, &message).await {
+                error!("Failed to dispatch job to agent {}: {}", agent.address, e);
+                continue;
             }
             Self::add_agent_to_running_job(datastore.clone(), job, &agent.name).await?;
+            debug!("Dispatched job to agent {}: {:?}", agent.address, message);
         }
 
         Ok(())
