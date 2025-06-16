@@ -53,6 +53,8 @@ class DateTimeUtils {
         const formatted = `${year}-${month}-${day}T${hours}:${minutes}`;
         document.getElementById(elementId).value = formatted;
     }
+
+
 }
 
 class Pagination {
@@ -104,9 +106,8 @@ class FilterUtils {
         const rangeInput = document.getElementById(rangeKey);
         if (rangeInput && rangeInput.value.trim() !== '') {
             const date = new Date(rangeInput.value.trim());
-            if (!isNaN(date.getTime())) {
-                url.searchParams.set(rangeKey, date.getTime());
-            }
+            let epoch_ms = DateTimeUtils.getInputEpochMs(rangeKey);
+            // Todo fix this
         } else {
             url.searchParams.delete(rangeKey);
         }

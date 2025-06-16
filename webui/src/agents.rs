@@ -212,7 +212,7 @@ pub async fn add_agent(_state: &State<WebState>) -> Template {
 pub async fn delete_agent(
     state: &State<WebState>,
     id: &str,
-) -> Result<rocket::response::Redirect, (rocket::http::Status, String)> {
+) -> Result<String, (rocket::http::Status, String)> {
     let agent_collection = state
         .datastore
         .get_collection::<AgentV1>("agents")
@@ -241,12 +241,5 @@ pub async fn delete_agent(
             )
         })?;
 
-    Ok(rocket::response::Redirect::to(uri!(agents_page(
-        None::<u32>,
-        None::<u64>,
-        None::<u64>,
-        None::<String>,
-        None::<String>,
-        None::<String>
-    ))))
+    Ok("Success".to_string())
 }
