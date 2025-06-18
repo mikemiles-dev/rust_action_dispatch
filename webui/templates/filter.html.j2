@@ -16,8 +16,14 @@
   </div>
 
   <script>
-      const start_fp = flatpickr("#range_start", {enableTime: true});
-      const end_fp = flatpickr("#range_end", {enableTime: true});
+      const start_fp = flatpickr("#range_start", {
+        enableTime: true,
+        time_24hr: false,
+        dateFormat: "Y-m-d H:i",
+        defaultHour: 0,
+        defaultMinute: 0,
+        utc: true
+      });    const end_fp = flatpickr("#range_end", {enableTime: true});
 
       DateTimeUtils.setInputTime('range_start', {{ range_start }});
       DateTimeUtils.setInputTime('range_end', {{ range_end }});
