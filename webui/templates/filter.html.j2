@@ -1,18 +1,24 @@
-    
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  
   <div class="search_wrapper">
     <input onchange="FilterUtils.applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" placeholder="Search..." autofocus>
   </div>
 
   <label for="range_start" style="margin: 0;">From:</label>
-  <input id="range_start" type="datetime-local" style="margin-right: 1em;">
+  <input id="range_start" class="date" type="date" style="margin-right: 1em;">
   <label for="range_end" style="margin: 0;">To:</label>
-  <input id="range_end" type="datetime-local" style="margin-right: 1em;">
+  <input id="range_end" class="date" type="date" style="margin-right: 1em;">
   <div style="float: right">
     <button class="btn" style="margin-right: 0.5em;" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;">Apply</button>
     <button class="btn" onclick="window.location.href = window.location.pathname; return false;">Clear</button>
   </div>
 
   <script>
+      const start_fp = flatpickr("#range_start", {enableTime: true});
+      const end_fp = flatpickr("#range_end", {enableTime: true});
+
       DateTimeUtils.setInputTime('range_start', {{ range_start }});
       DateTimeUtils.setInputTime('range_end', {{ range_end }});
   </script>

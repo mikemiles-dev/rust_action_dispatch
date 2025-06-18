@@ -187,7 +187,7 @@ body {
     display: flex; align-items: center; justify-content: center; margin: 20px 0;
 }
 
-input[type="datetime-local"] {
+.date {
     padding: 8px 12px;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -200,17 +200,17 @@ input[type="datetime-local"] {
     margin-bottom: 16px;
 }
 
-input[type="datetime-local"]:focus {
+.date:focus {
     border-color: #007bff;
     box-shadow: 0 0 0 2px rgba(0,123,255,0.15);
 }
 
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+.date::-webkit-calendar-picker-indicator {
     filter: invert(0.4);
     cursor: pointer;
 }
 
-input[type="datetime-local"]:disabled {
+.date:disabled {
     background: #f5f5f5;
     color: #aaa;
     cursor: not-allowed;
