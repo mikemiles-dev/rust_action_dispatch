@@ -428,3 +428,12 @@ dialog::backdrop {
 .badge-error {
     background-color: #dc3545;
 }
+
+.clear-button { 
+    position: absolute; margin-left: -30px; height: 34px; border: 1px solid #ccc; background: #fff; color: #888; border-radius: 4px; font-size: 1em;"
+}
+
+.clear-button:hover {
+    background: #f0f0f0;
+    color: #555;
+}

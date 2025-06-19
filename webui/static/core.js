@@ -45,7 +45,16 @@ class DateTimeUtils {
         const url = new URL(window.location.href);
         if (!url.searchParams.has(elementId)) return;
         const date = new Date(utcEpochMs);
-        const formattedDate = date.toISOString().slice(0, 16);
+        const options = {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: window.config.prefer12HourFormat
+        };
+        // Format as "MM/DD/YYYY, hh:mm AM/PM" or "MM/DD/YYYY, HH:mm"
+        const formattedDate = date.toLocaleString('en-US', options).replace(',', '');
         document.getElementById(elementId).value = formattedDate;
     }
 
@@ -101,7 +110,7 @@ class FilterUtils {
         const rangeInput = document.getElementById(rangeKey);
         if (rangeInput && rangeInput.value.trim() !== '') {
             // Parse input as local time, then compensate for timezone offset to get UTC epoch ms
-            const utcDateTimeString = rangeInput.value.trim() + ':00.000Z'; // e.g., "2025-06-18T10:30:00.000Z"
+            const utcDateTimeString = rangeInput.value.trim();// + ':00.000Z'; // e.g., "2025-06-18T10:30:00.000Z"
             const utcDateObject = new Date(utcDateTimeString);
             let epochMs = utcDateObject.getTime();
             url.searchParams.set(rangeKey, epochMs);
