@@ -43,7 +43,7 @@ class DateTimeUtils {
 
     static setInputTime(elementId, utcEpochMs) {
         const url = new URL(window.location.href);
-        if (!url.searchParams.has(elementId)) return;
+        if (!url.searchParams.has(elementId) || !utcEpochMs) return 0;
         const date = new Date(utcEpochMs);
         const options = {
             year: 'numeric',
@@ -56,9 +56,8 @@ class DateTimeUtils {
         // Format as "MM/DD/YYYY, hh:mm AM/PM" or "MM/DD/YYYY, HH:mm"
         const formattedDate = date.toLocaleString('en-US', options).replace(',', '');
         document.getElementById(elementId).value = formattedDate;
+        return { date, formattedDate };
     }
-
-
 }
 
 class Pagination {

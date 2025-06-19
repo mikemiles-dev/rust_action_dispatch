@@ -19,12 +19,16 @@
   </div>
 
   <script>
+      const start_result = DateTimeUtils.setInputTime('range_start', {{ range_start }});
+      const end_result = DateTimeUtils.setInputTime('range_end', {{ range_end }});
+
       const start_fp = flatpickr("#range_start", {
         enableTime: true,
         time_24hr: false,
         dateFormat: "m/d/Y h:i K",
         defaultHour: 0,
         defaultMinute: 0,
+        defaultDate: start_result.date,
         utc: true,
       });
       const end_fp = flatpickr("#range_end", {
@@ -33,11 +37,9 @@
         dateFormat: "m/d/Y h:i K",
         defaultHour: 0,
         defaultMinute: 0,
+        defaultDate: end_result.date,
         utc: true,
       });
-
-      DateTimeUtils.setInputTime('range_start', {{ range_start }});
-      DateTimeUtils.setInputTime('range_end', {{ range_end }});
 
       function clearInputById(id) {
         const input = document.getElementById(id);
