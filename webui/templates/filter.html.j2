@@ -27,7 +27,14 @@
         defaultMinute: 0,
         utc: true,
       });
-      const end_fp = flatpickr("#range_end", {enableTime: true});
+      const end_fp = flatpickr("#range_end", {
+        enableTime: true,
+        time_24hr: false,
+        dateFormat: "m/d/Y h:i K",
+        defaultHour: 0,
+        defaultMinute: 0,
+        utc: true,
+      });
 
       DateTimeUtils.setInputTime('range_start', {{ range_start }});
       DateTimeUtils.setInputTime('range_end', {{ range_end }});
