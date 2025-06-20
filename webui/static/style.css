@@ -187,7 +187,7 @@ body {
     display: flex; align-items: center; justify-content: center; margin: 20px 0;
 }
 
-.date {
+select {
     padding: 8px 12px;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -200,17 +200,31 @@ body {
     margin-bottom: 16px;
 }
 
-.date:focus {
+
+input {
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 1em;
+    color: #333;
+    box-shadow: 0 2px 8px rgba(114, 114, 114, 0.06);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    margin-bottom: 16px;
+}
+
+input:focus {
     border-color: #007bff;
     box-shadow: 0 0 0 2px rgba(0,123,255,0.15);
 }
 
-.date::-webkit-calendar-picker-indicator {
+input::-webkit-calendar-picker-indicator {
     filter: invert(0.4);
     cursor: pointer;
 }
 
-.date:disabled {
+input:disabled {
     background: #f5f5f5;
     color: #aaa;
     cursor: not-allowed;

@@ -6,6 +6,15 @@
     <input onchange="FilterUtils.applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" placeholder="Search..." autofocus>
   </div>
 
+  <select id="filter_select" name="filter_select" onchange="FilterUtils.applyFilterAndReload('filter_select', this.value, false, true);">
+    <option value="">-- Select an option --</option>
+    <option value="option1" {% if filter_select == 'option1' %}selected{% endif %}>Option 1</option>
+    <option value="option2" {% if filter_select == 'option2' %}selected{% endif %}>Option 2</option>
+    <option value="option3" {% if filter_select == 'option3' %}selected{% endif %}>Option 3</option>
+  </select>
+
+   &nbsp;
+
   <label for="range_start" style="margin: 0;">From:</label>
   <input id="range_start" class="date" type="date" style="margin-right: 1em;">
   <button id="clear_start" class="clear-button" onclick="clearInputById('range_start');">&#10005;</button>
