@@ -28,7 +28,7 @@
         dateFormat: "m/d/Y h:i K",
         defaultHour: 0,
         defaultMinute: 0,
-        defaultDate: start_result.date,
+        defaultDate: start_result.formattedDate,
         utc: true,
       });
       const end_fp = flatpickr("#range_end", {
@@ -37,7 +37,7 @@
         dateFormat: "m/d/Y h:i K",
         defaultHour: 0,
         defaultMinute: 0,
-        defaultDate: end_result.date,
+        defaultDate: end_result.formattedDate,
         utc: true,
       });
 

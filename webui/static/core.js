@@ -54,9 +54,35 @@ class DateTimeUtils {
             hour12: window.config.prefer12HourFormat
         };
         // Format as "MM/DD/YYYY, hh:mm AM/PM" or "MM/DD/YYYY, HH:mm"
-        const formattedDate = date.toLocaleString('en-US', options).replace(',', '');
+        const formattedDate = date.toLocaleString('en-US', { ...options, timeZone: 'UTC' }).replace(',', '');
         document.getElementById(elementId).value = formattedDate;
         return { date, formattedDate };
+    }
+
+    static parseUsDateTimeToIso(dateStringAsUtc) {
+        // Manually parse the components
+        const parts = dateStringAsUtc.match(/(\d{2})\/(\d{2})\/(\d{4}) (\d{1,2}):(\d{2}) (AM|PM)/);
+        
+        if (parts) {
+            const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+            const day = parseInt(parts[2], 10);
+            const year = parseInt(parts[3], 10);
+            let hours = parseInt(parts[4], 10);
+            const minutes = parseInt(parts[5], 10);
+            const ampm = parts[6];
+        
+            // Adjust hours for AM/PM to 24-hour format
+            if (ampm === "PM" && hours < 12) {
+                hours += 12;
+            }
+            if (ampm === "AM" && hours === 12) { // 12 AM (midnight) is 0 hours
+                hours = 0;
+            }
+
+            const utcDateObject = new Date(Date.UTC(year, month, day, hours, minutes, 0, 0));
+
+            return utcDateObject;
+        }
     }
 }
 
@@ -108,10 +134,9 @@ class FilterUtils {
     static handleRangeInput(url, rangeKey) {
         const rangeInput = document.getElementById(rangeKey);
         if (rangeInput && rangeInput.value.trim() !== '') {
-            // Parse input as local time, then compensate for timezone offset to get UTC epoch ms
-            const utcDateTimeString = rangeInput.value.trim();// + ':00.000Z'; // e.g., "2025-06-18T10:30:00.000Z"
-            const utcDateObject = new Date(utcDateTimeString);
-            let epochMs = utcDateObject.getTime();
+            const utcDateTimeString = rangeInput.value.trim();
+            const utcDate = DateTimeUtils.parseUsDateTimeToIso(utcDateTimeString);
+            let epochMs = utcDate.getTime();
             url.searchParams.set(rangeKey, epochMs);
         } else {
             url.searchParams.delete(rangeKey);
