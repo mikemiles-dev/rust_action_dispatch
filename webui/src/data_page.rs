@@ -10,8 +10,7 @@ use crate::WebState;
 #[derive(Default)]
 pub struct DataPageParams {
     pub collection: String,
-    pub range_start_key: Option<String>, // for future use
-    pub range_end_key: Option<String>,   // for future use
+    pub range_field: Option<String>, // <-- Use this instead of range_start_key and range_end_key
     pub range_start: Option<u64>,
     pub range_end: Option<u64>,
     pub search_fields: Vec<String>,
@@ -46,8 +45,7 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         let mut filter_doc = Self::build_filter(
             params.filter.unwrap_or_default(),
             params.search_fields,
-            params.range_start_key.clone(),
-            params.range_end_key.clone(),
+            params.range_field.clone(),
             params.range_start,
             params.range_end,
         );
@@ -55,7 +53,7 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         if let Some(additional_filters) = &params.additional_filters {
             for (key, value) in additional_filters {
                 let addtional_filter_doc =
-                    Self::build_filter(value.clone(), vec![key.clone()], None, None, None, None);
+                    Self::build_filter(value.clone(), vec![key.clone()], None, None, None);
                 filter_doc = doc! {
                     "$and": [filter_doc, addtional_filter_doc]
                 };
@@ -94,8 +92,7 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
     fn build_filter(
         filter_str: String,
         search_fields: Vec<String>,
-        range_start_key: Option<String>,
-        range_end_key: Option<String>,
+        range_field: Option<String>,
         range_start: Option<u64>,
         range_end: Option<u64>,
     ) -> bson::Document {
@@ -124,17 +121,17 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             doc! {}
         };
 
-        if let Some(range_start) = range_start {
-            filter.insert(
-                range_start_key.unwrap_or("started_at".to_string()),
-                doc! { "$gte": DateTime::from_millis(range_start as i64) },
-            );
-        }
-        if let Some(range_end) = range_end {
-            filter.insert(
-                range_end_key.unwrap_or("completed_at".to_string()),
-                doc! { "$lte": DateTime::from_millis(range_end as i64) },
-            );
+        if let Some(field) = range_field {
+            let mut range_doc = doc! {};
+            if let Some(range_start) = range_start {
+                range_doc.insert("$gte", DateTime::from_millis(range_start as i64));
+            }
+            if let Some(range_end) = range_end {
+                range_doc.insert("$lte", DateTime::from_millis(range_end as i64));
+            }
+            if !range_doc.is_empty() {
+                filter.insert(field, range_doc);
+            }
         }
 
         filter
