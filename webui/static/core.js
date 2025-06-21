@@ -165,6 +165,34 @@ class FilterUtils {
         sessionStorage.removeItem('savedUrlParams');
     }
 
+    static deleteItemsFromDiv(baseUrl) {
+        if (!window.confirm('Are you sure you want to delete these items?')) {
+            return;
+        }
+        const div = document.getElementById('item_ids');
+        if (!div) {
+            console.warn('Div with id "item_ids" not found.');
+            return;
+        }
+        const items = div.textContent.trim().split(/\s+/).filter(Boolean);
+        fetch(baseUrl, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            params: JSON.stringify({ items })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to delete items');
+            return response.json();
+        })
+        .then(data => {
+            console.log('Delete response:', data);
+        })
+        .catch(error => {
+            console.error('Error deleting items:', error);
+        });
+        window.location.href = baseUrl;
+    }
+
     static setFilter(url, filterName, filterValue) {
         url.searchParams.set(filterName, filterValue);
     }
