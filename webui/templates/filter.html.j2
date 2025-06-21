@@ -6,6 +6,8 @@
     <input onchange="FilterUtils.applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" placeholder="Search..." autofocus>
   </div>
 
+{{ range_select }}
+
   <select id="range_select" name="range_select" onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
     {% for range_field in range_fields %}
     <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>

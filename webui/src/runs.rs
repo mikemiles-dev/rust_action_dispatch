@@ -10,10 +10,13 @@ use std::collections::HashMap;
 use crate::WebState;
 use crate::data_page::{DataPage, DataPageParams};
 
-#[get("/runs?<page>&<range_start>&<range_end>&<filter>&<outcome_filter>&<sort>&<order>")]
+#[get(
+    "/runs?<page>&<range_select>&<range_start>&<range_end>&<filter>&<outcome_filter>&<sort>&<order>"
+)]
 pub async fn runs_page(
     range_start: Option<u64>,
     range_end: Option<u64>,
+    range_select: Option<String>,
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
@@ -27,6 +30,7 @@ pub async fn runs_page(
             page: page.unwrap_or(1),
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
+            range_select: range_select.unwrap_or_default(),
             range_fields: vec!["start_time".to_string(), "end_time".to_string()], // Assuming these are the fields for range filtering
             filter: filter.unwrap_or_default(),
             order: order.unwrap_or_default(),
