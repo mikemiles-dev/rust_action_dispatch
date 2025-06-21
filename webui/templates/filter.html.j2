@@ -24,6 +24,9 @@
     <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
   </div>
 
+  <div id="item_ids" style="display: none;">
+  </div>
+
   <script>
       const start_result = DateTimeUtils.setInputTime('range_start', {{ range_start }});
       const end_result = DateTimeUtils.setInputTime('range_end', {{ range_end }});

@@ -23,6 +23,8 @@ function renderAgentsTable(params = {}) {
 
             data = data.items;
 
+            document.getElementById("item_ids").innerHTML = data.map(item => item._id.$oid).join(' ');
+
             // Assume data is an array of objects
             if (!Array.isArray(data) || data.length === 0) {
                 container.innerHTML = '<p>No data available.</p>';
