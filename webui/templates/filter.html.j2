@@ -21,7 +21,7 @@
 
   <div style="float: right">
     <button class="btn" style="margin-right: 0.5em;" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;">Apply</button>
-    <button class="btn" onclick="window.location.href = window.location.pathname; return false;">Clear</button>
+    <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
   </div>
 
   <script>

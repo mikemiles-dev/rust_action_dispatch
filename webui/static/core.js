@@ -11,6 +11,19 @@ window.config = {
     }
 };
 
+window.addEventListener('DOMContentLoaded', () => {
+    const url = new URL(window.location.href);
+    if (![...url.searchParams.keys()].length) {
+        const savedParams = FilterUtils.getSavedUrlParamsFromSession();
+        if (savedParams) {
+            Object.entries(savedParams).forEach(([key, value]) => {
+                url.searchParams.set(key, value);
+            });
+            window.location.replace(url.toString());
+        }
+    }
+});
+
 class DateTimeUtils {
     static formatUtcDate(timestamp) {
         if (isNaN(timestamp)) return '';
@@ -119,7 +132,37 @@ class FilterUtils {
         FilterUtils.setDateTimeFilters(url);
         if (resetPage) FilterUtils.resetPage(url);
         if (changeOrder) FilterUtils.toggleOrder(url);
+        FilterUtils.saveUrlParamsToSession();
         window.location.href = url.toString();
+    }
+
+    static getSavedUrlParamsFromSession() {
+        const paramsJson = sessionStorage.getItem('savedUrlParams');
+        if (!paramsJson) return null;
+        try {
+            return JSON.parse(paramsJson);
+        } catch (e) {
+            console.warn('Failed to parse savedUrlParams from sessionStorage:', e);
+            return null;
+        }
+    }
+
+    static saveUrlParamsToSession() {
+        const url = new URL(window.location.href);
+        const params = {};
+        url.searchParams.forEach((value, key) => {
+            params[key] = value;
+        });
+        sessionStorage.setItem('savedUrlParams', JSON.stringify(params));
+    }
+
+    static clearFilter() {
+        FilterUtils.deleteSavedUrlParamsFromSession();
+        window.location.href = window.location.pathname;
+    }
+
+    static deleteSavedUrlParamsFromSession() {
+        sessionStorage.removeItem('savedUrlParams');
     }
 
     static setFilter(url, filterName, filterValue) {
