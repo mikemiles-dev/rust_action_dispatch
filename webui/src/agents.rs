@@ -106,6 +106,7 @@ pub async fn agents_page(
             sort: sort.unwrap_or_default(),
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
+            range_fields: vec!["last_ping".to_string()], // Assuming last_ping is the field for range filtering
             current_page: page,
             filter: filter.unwrap_or_default(),
             page_name: "Agents",
@@ -128,8 +129,7 @@ pub async fn agents_data(
 ) -> Json<serde_json::Value> {
     let data_page_params = DataPageParams {
         collection: "agents".to_string(),
-        range_end_key: Some("last_ping".to_string()), // for sorting by last_ping
-        range_start_key: Some("last_ping".to_string()), // for sorting by last_ping
+        range_field: Some("last_ping".to_string()), // Assuming last_ping is the field for range filtering
         range_start,
         range_end,
         search_fields: vec![

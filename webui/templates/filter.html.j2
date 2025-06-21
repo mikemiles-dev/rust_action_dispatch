@@ -6,14 +6,11 @@
     <input onchange="FilterUtils.applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" placeholder="Search..." autofocus>
   </div>
 
-  <select id="filter_select" name="filter_select" onchange="FilterUtils.applyFilterAndReload('filter_select', this.value, false, true);">
-    <option value="">-- Select an option --</option>
-    <option value="option1" {% if filter_select == 'option1' %}selected{% endif %}>Option 1</option>
-    <option value="option2" {% if filter_select == 'option2' %}selected{% endif %}>Option 2</option>
-    <option value="option3" {% if filter_select == 'option3' %}selected{% endif %}>Option 3</option>
+  <select id="range_select" name="range_select" onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
+    {% for range_field in range_fields %}
+    <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>
+    {% endfor %}
   </select>
-
-   &nbsp;
 
   <label for="range_start" style="margin: 0;">From:</label>
   <input id="range_start" class="date" type="date" style="margin-right: 1em;">

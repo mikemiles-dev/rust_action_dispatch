@@ -27,6 +27,7 @@ pub async fn runs_page(
             page: page.unwrap_or(1),
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
+            range_fields: vec!["start_time".to_string(), "end_time".to_string()], // Assuming these are the fields for range filtering
             filter: filter.unwrap_or_default(),
             order: order.unwrap_or_default(),
             outcome_filter: outcome_filter.unwrap_or_default(),
