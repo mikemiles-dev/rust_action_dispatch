@@ -187,6 +187,32 @@ body {
     display: flex; align-items: center; justify-content: center; margin: 20px 0;
 }
 
+.range_select {
+    margin-top: 10px;
+}
+
+.date_tab_wrapper {
+    width: 100%;
+    padding-bottom: 5px;
+    padding: 0px;
+    margin: 0px;
+    border-bottom: 1px solid #e4e4e4;
+}
+
+.date_tab {
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    border-bottom: 0;
+    background: #fff;
+    font-size: 1em;
+    color: #333;
+    box-shadow: 0 2px 8px rgba(114, 114, 114, 0.06);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    cursor: pointer;
+}
+
 select {
     padding: 8px 12px;
     border: 1px solid #e0e0e0;

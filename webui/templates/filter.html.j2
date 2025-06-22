@@ -6,6 +6,13 @@
     <input onchange="FilterUtils.applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" placeholder="Search..." autofocus>
   </div>
 
+  <div class="date_tab_wrapper">
+  <button class="date_tab" onclick="#">Relative</button>
+  <button class="date_tab" onclick="#">Absolute</button>
+  </div>
+
+  <div class="range_select">
+
   <select id="range_select" name="range_select" onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
     {% for range_field in range_fields %}
     <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>
@@ -22,6 +29,8 @@
   <div style="float: right">
     <button class="btn" style="margin-right: 0.5em;" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;">Apply</button>
     <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
+  </div>
+
   </div>
 
   <div id="item_ids" style="display: none;">
