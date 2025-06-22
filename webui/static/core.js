@@ -14,14 +14,16 @@ window.config = {
 window.addEventListener('DOMContentLoaded', () => {
     const url = new URL(window.location.href);
     const hasUrlParams = [...url.searchParams.keys()].length > 0;
-    const savedParams = FilterUtils.getSavedUrlParamsFromSession();
 
-    if (!hasUrlParams && savedParams && Object.keys(savedParams).length > 0) {
-        Object.entries(savedParams).forEach(([key, value]) => {
-            url.searchParams.set(key, value);
-        });
-        window.location.replace(url.toString());
-    } else if (hasUrlParams && (!savedParams || Object.keys(savedParams).length === 0)) {
+    if (!hasUrlParams) {
+        const savedParams = FilterUtils.getSavedUrlParamsFromSession();
+        if (savedParams && Object.keys(savedParams).length > 0) {
+            Object.entries(savedParams).forEach(([key, value]) => {
+                url.searchParams.set(key, value);
+            });
+            window.location.replace(url.toString());
+        }
+    } else {
         FilterUtils.saveUrlParamsToSession();
     }
 });
@@ -134,7 +136,7 @@ class FilterUtils {
         FilterUtils.setDateTimeFilters(url);
         if (resetPage) FilterUtils.resetPage(url);
         if (changeOrder) FilterUtils.toggleOrder(url);
-        FilterUtils.saveUrlParamsToSession();
+        //FilterUtils.saveUrlParamsToSession();
         window.location.href = url.toString();
     }
 

@@ -5,11 +5,11 @@
 
   {% include "filter" %}
 
-  <input onchange="clearOutcomeFilter();" type="radio" id="clear_filter" name="agent_outcome_filter" value="-1" {% if outcome_filter is not defined or outcome_filter != '1' or outcome_filter != '0' %}checked{% endif %}>
+  <input onchange="FilterUtils.applyFilterAndReload('outcome_filter', '');" type="radio" id="clear_filter" name="agent_outcome_filter" value="-1" {% if outcome_filter is not defined or outcome_filter != '1' or outcome_filter != '0' %}checked{% endif %}>
   <label for="online_filter">Both</label>
-  <input onchange="applyOutcomeFilter(1);" type="radio" id="online_filter" name="agent_outcome_filter" value="1" {% if outcome_filter is defined and outcome_filter == '1' %}checked{% endif %}>
+  <input onchange="FilterUtils.applyFilterAndReload('outcome_filter', '1');" type="radio" id="online_filter" name="agent_outcome_filter" value="1" {% if outcome_filter is defined and outcome_filter == '1' %}checked{% endif %}>
   <label for="online_filter">Success</label>
-  <input onchange="applyOutcomeFilter(0);" type="radio" id="offline_filter" name="agent_outcome_filter" value="0" {% if outcome_filter is defined and outcome_filter == '0' %}checked{% endif %}> 
+  <input onchange="FilterUtils.applyFilterAndReload('outcome_filter', '0');" type="radio" id="offline_filter" name="agent_outcome_filter" value="0" {% if outcome_filter is defined and outcome_filter == '0' %}checked{% endif %}> 
   <label for="offline_filter">Failure</label>
   <br><br>
 

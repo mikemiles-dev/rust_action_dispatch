@@ -11,11 +11,11 @@
   <a href="#" class="btn" onclick="window.location.href = '/agents/add'; return false;">Add Agent</a>
   <a href="#" class="btn" onclick="javascript:FilterUtils.deleteItemsFromDiv('/agents');">Delete Displayed</a>
 
-  <input onchange="FilterUtils.applyFilterAndReload('status_filter', -1);" type="radio" id="clear_filter" name="agent_status_filter" value="-1" {% if status_filter is not defined or status_filter != '1' or status_filter != '0' %}checked{% endif %}>
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '');" type="radio" id="clear_filter" name="agent_status_filter" value="-1" {% if status_filter is not defined or status_filter != '1' or status_filter != '0' %}checked{% endif %}>
   <label for="online_filter">Both</label>
-  <input onchange="FilterUtils.applyFilterAndReload('status_filter', 1);" type="radio" id="online_filter" name="agent_status_filter" value="1" {% if status_filter is defined and status_filter == '1' %}checked{% endif %}>
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '1');" type="radio" id="online_filter" name="agent_status_filter" value="1" {% if status_filter is defined and status_filter == '1' %}checked{% endif %}>
   <label for="online_filter">Online</label>
-  <input onchange="FilterUtils.applyFilterAndReload('status_filter', 0);" type="radio" id="offline_filter" name="agent_status_filter" value="0" {% if status_filter is defined and status_filter == '0' %}checked{% endif %}> 
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '0');" type="radio" id="offline_filter" name="agent_status_filter" value="0" {% if status_filter is defined and status_filter == '0' %}checked{% endif %}> 
   <label for="offline_filter">Offline</label>
   <br><br>
 
