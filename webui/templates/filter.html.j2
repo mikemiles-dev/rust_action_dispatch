@@ -5,16 +5,16 @@
   <script>
   
   function setActiveTab(item) {
-    if(item.id === 'relative') {
-      document.getElementById('absolute').style.display = 'none';
-      document.getElementById('range_select').disabled = true;
-      document.getElementById('range_start').disabled = true;
-      document.getElementById('range_end').disabled = true;
+    if(item.id === 'relative_tab') {
+      document.getElementById('absolute_tab').classList.remove('active');
+      item.classList.add('active');
+      document.getElementById('absolute').style.display = 'none'; 
+      document.getElementById('relative').style.display = 'block';
     } else {
-      document.getElementById('absolute').style.display = 'block';
-      document.getElementById('range_select').disabled = false;
-      document.getElementById('range_start').disabled = false;
-      document.getElementById('range_end').disabled = false;
+      document.getElementById('relative_tab').classList.remove('active');
+      item.classList.add('active');
+      document.getElementById('absolute').style.display = 'block'; 
+      document.getElementById('relative').style.display = 'none';
     }
   }
 
@@ -25,15 +25,37 @@
   </div>
 
   <div class="date_tab_wrapper">
-      <button id="relative" class="date_tab" onclick="javascript:setActiveTab(this);">Relative</button>
-      <button id="absolute" class="date_tab" onclick="javascript:setActiveTab(this);">Absolute</button>
+      <button id="relative_tab" class="date_tab" onclick="javascript:setActiveTab(this);">Relative</button>
+      <button id="absolute_tab" class="date_tab" onclick="javascript:setActiveTab(this);">Absolute</button>
   </div>
 
 
   <div class="range_select">
 
+    <div id="relative" style="display: none;">
+      <select onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
+        {% for range_field in range_fields %}
+        <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>
+        {% endfor %}
+      </select>
+
+      Last <select id="relative_select" name="relative_select" onchange="FilterUtils.applyFilterAndReload('relative_select', this.value, false, true);">
+        <option value="5" {% if relative_select == 5 %} selected{% endif %}>5</option>
+        <option value="10" {% if relative_select == 10 %} selected{% endif %}>10</option>
+        <option value="30" {% if relative_select == 30 %} selected{% endif %}>30</option>
+        <option value="60" {% if relative_select == 60 %} selected{% endif %}>60</option>
+      </select>
+      <select id="relative_unit_select" name="relative_unit_select" onchange="FilterUtils.applyFilterAndReload('relative_unit_select', this.value, false, true);">
+        <option value="seconds" {% if relative_unit_select == unit %} selected{% endif %}>seconds</option>
+        <option value="minutes" {% if relative_unit_select == 'minutes' %} selected{% endif %}>minutes</option>
+        <option value="hours" {% if relative_unit_select == 'hours' %} selected{% endif %}>hours</option>
+        <option value="days" {% if relative_unit_select == 'days' %} selected{% endif %}>days</option>
+        <option value="weeks" {% if relative_unit_select == 'weeks' %} selected{% endif %}>weeks</option>
+      </select>
+    </div>
+
     <div id="absolute" style="display: none;">
-      <select id="range_select" name="range_select" onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
+      <select onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
         {% for range_field in range_fields %}
         <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>
         {% endfor %}
@@ -43,7 +65,7 @@
       <input id="range_start" class="date" type="date" style="margin-right: 1em;">
       <button id="clear_start" class="clear-button" onclick="clearInputById('range_start');">&#10005;</button>
       <label for="range_end" style="margin: 0;">To:</label>
-      <input id="range_end" class="date" type="date" style="margin-right: 1em;">
+      <input id="range_end" class="date" type="date" style="margin-right: 1em; width: 160px;">
       <button id="clear_end" class="clear-button" onclick="clearInputById('range_end');">&#10005;</button>
 
     </div>

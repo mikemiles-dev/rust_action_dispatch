@@ -202,7 +202,7 @@ body {
 .date_tab {
     padding: 8px 12px;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: 8px 8px 0 0;
     border-bottom: 0;
     background: #fff;
     font-size: 1em;
