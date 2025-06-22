@@ -46,7 +46,6 @@
         <option value="5" {% if relative_select == 5 %} selected{% endif %}>5</option>
         <option value="10" {% if relative_select == 10 %} selected{% endif %}>10</option>
         <option value="30" {% if relative_select == 30 %} selected{% endif %}>30</option>
-        <option value="60" {% if relative_select == 60 %} selected{% endif %}>60</option>
       </select>
       <select id="relative_unit_select" name="relative_unit_select" onchange="FilterUtils.applyFilterAndReload('relative_unit_select', this.value, false, true);">
         <option value="seconds" {% if relative_unit_select == unit %} selected{% endif %}>seconds</option>
