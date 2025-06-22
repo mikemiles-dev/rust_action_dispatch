@@ -139,7 +139,7 @@ class FilterUtils {
     }
 
     static getSavedUrlParamsFromSession() {
-        const paramsJson = sessionStorage.getItem('savedUrlParams');
+        const paramsJson = sessionStorage.getItem(FilterUtils.getUrlKey());
         if (!paramsJson) return null;
         try {
             return JSON.parse(paramsJson);
