@@ -92,9 +92,10 @@ pub async fn post_agents(
     Ok("Success".to_string())
 }
 
-#[get("/agents?<page>&<range_start>&<range_end>&<filter>&<sort>&<status_filter>")]
+#[get("/agents?<page>&<relative_select>&<range_start>&<range_end>&<filter>&<sort>&<status_filter>")]
 pub async fn agents_page(
     page: Option<u32>,
+    relative_select: Option<String>,
     range_start: Option<u64>,
     range_end: Option<u64>, // range_end is not used in agents_page, but required for data_page
     filter: Option<String>,
@@ -108,6 +109,7 @@ pub async fn agents_page(
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
             range_fields: vec!["last_ping".to_string()], // Assuming last_ping is the field for range filtering
+            relative_select: relative_select.unwrap_or_default(),
             current_page: page,
             filter: filter.unwrap_or_default(),
             page_name: "Agents",

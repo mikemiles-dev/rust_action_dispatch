@@ -10,11 +10,13 @@
       item.classList.add('active');
       document.getElementById('absolute').style.display = 'none'; 
       document.getElementById('relative').style.display = 'block';
+      FilterUtils.applyFilterAndReload('relative_select', 'relative', false, true);
     } else {
       document.getElementById('relative_tab').classList.remove('active');
       item.classList.add('active');
       document.getElementById('absolute').style.display = 'block'; 
       document.getElementById('relative').style.display = 'none';
+      FilterUtils.applyFilterAndReload('relative_select', 'absolute', false, true);
     }
   }
 
@@ -28,14 +30,16 @@
     <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
   </div>
 
+{{ range_select}}
+
   <div class="date_tab_wrapper">
-      <button id="relative_tab" class="date_tab" onclick="javascript:setActiveTab(this);">Relative</button>
-      <button id="absolute_tab" class="date_tab" onclick="javascript:setActiveTab(this);">Absolute</button>
+    <button id="relative_tab" class="date_tab{% if relative_select == 'relative' %} active{% endif %}" onclick="javascript:setActiveTab(this);">Relative</button>
+    <button id="absolute_tab" class="date_tab{% if relative_select == 'absolute' %} active{% endif %}" onclick="javascript:setActiveTab(this);">Absolute</button>
   </div>
 
   <div class="range_select">
 
-    <div id="relative" style="display: none;">
+    <div id="relative" style="display: {% if relative_select == 'relative' %} block {% else %} none {% endif %};">
       <select onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
         {% for range_field in range_fields %}
         <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>
@@ -56,7 +60,7 @@
       </select>
     </div>
 
-    <div id="absolute" style="display: none;">
+    <div id="absolute" style="display: {% if relative_select == 'absolute' %} block {% else %} none {% endif %};">
       <select onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
         {% for range_field in range_fields %}
         <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>
