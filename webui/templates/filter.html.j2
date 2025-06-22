@@ -23,12 +23,15 @@
   <div class="search_wrapper">
     <input onchange="FilterUtils.applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" placeholder="Search..." autofocus>
   </div>
+  <div style="float: right">
+    <button class="btn" style="margin-right: 0.5em;" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;">Apply</button>
+    <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
+  </div>
 
   <div class="date_tab_wrapper">
       <button id="relative_tab" class="date_tab" onclick="javascript:setActiveTab(this);">Relative</button>
       <button id="absolute_tab" class="date_tab" onclick="javascript:setActiveTab(this);">Absolute</button>
   </div>
-
 
   <div class="range_select">
 
@@ -68,11 +71,6 @@
       <input id="range_end" class="date" type="date" style="margin-right: 1em; width: 160px;">
       <button id="clear_end" class="clear-button" onclick="clearInputById('range_end');">&#10005;</button>
 
-    </div>
-
-    <div style="float: right">
-      <button class="btn" style="margin-right: 0.5em;" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;">Apply</button>
-      <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
     </div>
 
   </div>
