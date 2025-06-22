@@ -13,14 +13,16 @@ window.config = {
 
 window.addEventListener('DOMContentLoaded', () => {
     const url = new URL(window.location.href);
-    if (![...url.searchParams.keys()].length) {
-        const savedParams = FilterUtils.getSavedUrlParamsFromSession();
-        if (savedParams && Object.keys(savedParams).length > 0) {
-            Object.entries(savedParams).forEach(([key, value]) => {
+    const hasUrlParams = [...url.searchParams.keys()].length > 0;
+    const savedParams = FilterUtils.getSavedUrlParamsFromSession();
+
+    if (!hasUrlParams && savedParams && Object.keys(savedParams).length > 0) {
+        Object.entries(savedParams).forEach(([key, value]) => {
             url.searchParams.set(key, value);
-            });
-            window.location.replace(url.toString());
-        }
+        });
+        window.location.replace(url.toString());
+    } else if (hasUrlParams && (!savedParams || Object.keys(savedParams).length === 0)) {
+        FilterUtils.saveUrlParamsToSession();
     }
 });
 
