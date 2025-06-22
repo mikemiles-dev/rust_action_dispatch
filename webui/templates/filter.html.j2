@@ -46,19 +46,20 @@
         {% endfor %}
       </select>
 
-      Show the last <select id="relative_select" name="relative_select" onchange="FilterUtils.applyFilterAndReload('relative_select', this.value, false, true);">
-        <option value="5" {% if relative_select == 5 %} selected{% endif %}>5</option>
-        <option value="10" {% if relative_select == 10 %} selected{% endif %}>10</option>
-        <option value="30" {% if relative_select == 30 %} selected{% endif %}>30</option>
+      Show the last 
+      <select id="relative_select_value" name="relative_select_value" onchange="FilterUtils.applyFilterAndReload('relative_select_value', this.value, false, true);">
+        <option value="5" {% if relative_select_value is defined and relative_select_value == 5 %}selected{% endif %}>5</option>
+        <option value="10" {% if relative_select_value is defined and relative_select_value == 10 %}selected{% endif %}>10</option>
+        <option value="30" {% if (relative_select_value != 5 and relative_select_value != 10) %}selected{% endif %}>30</option>
       </select>
-      <select id="relative_unit_select" name="relative_unit_select" onchange="FilterUtils.applyFilterAndReload('relative_unit_select', this.value, false, true);">
-        <option value="seconds" {% if relative_unit_select == unit %} selected{% endif %}>seconds</option>
-        <option value="minutes" {% if relative_unit_select == 'minutes' %} selected{% endif %}>minutes</option>
-        <option value="hours" {% if relative_unit_select == 'hours' %} selected{% endif %}>hours</option>
-        <option value="days" {% if relative_unit_select == 'days' %} selected{% endif %}>days</option>
-        <option value="weeks" {% if relative_unit_select == 'weeks' %} selected{% endif %}>weeks</option>
-      </select>
-    </div>
+        <select id="relative_select_unit" name="relative_select_unit" onchange="FilterUtils.applyFilterAndReload('relative_select_unit', this.value, false, true);">
+          <option value="seconds" {% if relative_select_unit == 'seconds' %} selected{% endif %}>seconds</option>
+          <option value="minutes" {% if relative_select_unit == 'minutes' %} selected{% endif %}>minutes</option>
+          <option value="hours" {% if relative_select_unit == 'hours' %} selected{% endif %}>hours</option>
+          <option value="days" {% if relative_select_unit == 'days' %} selected{% endif %}>days</option>
+          <option value="weeks" {% if relative_select_unit == 'weeks' %} selected{% endif %}>weeks</option>
+        </select>
+      </div>
 
     <div id="absolute" style="display: {% if relative_select == 'absolute' %} block {% else %} none {% endif %};">
       <select onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">

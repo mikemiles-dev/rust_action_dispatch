@@ -92,10 +92,15 @@ pub async fn post_agents(
     Ok("Success".to_string())
 }
 
-#[get("/agents?<page>&<relative_select>&<range_start>&<range_end>&<filter>&<sort>&<status_filter>")]
+#[allow(clippy::too_many_arguments)]
+#[get(
+    "/agents?<page>&<relative_select>&<relative_select_unit>&<relative_select_value>&<range_start>&<range_end>&<filter>&<sort>&<status_filter>"
+)]
 pub async fn agents_page(
     page: Option<u32>,
     relative_select: Option<String>,
+    relative_select_value: Option<u8>,
+    relative_select_unit: Option<String>,
     range_start: Option<u64>,
     range_end: Option<u64>, // range_end is not used in agents_page, but required for data_page
     filter: Option<String>,
@@ -110,6 +115,8 @@ pub async fn agents_page(
             range_end: range_end.unwrap_or_default(),
             range_fields: vec!["last_ping".to_string()], // Assuming last_ping is the field for range filtering
             relative_select: relative_select.unwrap_or_default(),
+            relative_select_value: relative_select_value.unwrap_or(0),
+            relative_select_unit: relative_select_unit.unwrap_or_default(),
             current_page: page,
             filter: filter.unwrap_or_default(),
             page_name: "Agents",
@@ -268,11 +275,8 @@ pub async fn delete_agents_bulk(
             )
         })?;
 
-    let object_ids: Result<Vec<ObjectId>, _> = ids_json
-        .ids
-        .iter()
-        .map(|id| ObjectId::parse_str(id))
-        .collect();
+    let object_ids: Result<Vec<ObjectId>, _> =
+        ids_json.ids.iter().map(ObjectId::parse_str).collect();
 
     let object_ids = object_ids.map_err(|_| {
         (
