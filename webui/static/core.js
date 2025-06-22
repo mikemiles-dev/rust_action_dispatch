@@ -15,9 +15,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const url = new URL(window.location.href);
     if (![...url.searchParams.keys()].length) {
         const savedParams = FilterUtils.getSavedUrlParamsFromSession();
-        if (savedParams) {
+        if (savedParams && Object.keys(savedParams).length > 0) {
             Object.entries(savedParams).forEach(([key, value]) => {
-                url.searchParams.set(key, value);
+            url.searchParams.set(key, value);
             });
             window.location.replace(url.toString());
         }
@@ -178,7 +178,7 @@ class FilterUtils {
         fetch(baseUrl, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            params: JSON.stringify({ items })
+            body: JSON.stringify({ ids: items })
         })
         .then(response => {
             if (!response.ok) throw new Error('Failed to delete items');

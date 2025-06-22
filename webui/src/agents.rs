@@ -1,7 +1,8 @@
 use mongodb::bson::{doc, oid::ObjectId};
+use rocket::State;
 use rocket::form::{Form, FromForm};
+use rocket::serde::Deserialize;
 use rocket::serde::json::Json;
-use rocket::{State, uri};
 use rocket::{delete, get, post};
 use rocket_dyn_templates::{Template, context};
 use serde_json::json;
@@ -238,6 +239,53 @@ pub async fn delete_agent(
             (
                 rocket::http::Status::InternalServerError,
                 format!("Error deleting agent: {}", e),
+            )
+        })?;
+
+    Ok("Success".to_string())
+}
+
+#[derive(Deserialize, Debug)]
+pub struct DeleteAgentsRequest {
+    pub ids: Vec<String>,
+}
+
+#[delete("/agents", data = "<ids_json>")]
+pub async fn delete_agents_bulk(
+    state: &State<WebState>,
+    ids_json: Json<DeleteAgentsRequest>,
+) -> Result<String, (rocket::http::Status, String)> {
+    let agent_collection = state
+        .datastore
+        .get_collection::<AgentV1>("agents")
+        .await
+        .map_err(|e| {
+            (
+                rocket::http::Status::InternalServerError,
+                format!("Error accessing agents collection: {}", e),
+            )
+        })?;
+
+    let object_ids: Result<Vec<ObjectId>, _> = ids_json
+        .ids
+        .iter()
+        .map(|id| ObjectId::parse_str(id))
+        .collect();
+
+    let object_ids = object_ids.map_err(|_| {
+        (
+            rocket::http::Status::BadRequest,
+            "One or more invalid agent ID formats".to_string(),
+        )
+    })?;
+
+    agent_collection
+        .delete_many(doc! { "_id": { "$in": object_ids } })
+        .await
+        .map_err(|e| {
+            (
+                rocket::http::Status::InternalServerError,
+                format!("Error deleting agents: {}", e),
             )
         })?;
 

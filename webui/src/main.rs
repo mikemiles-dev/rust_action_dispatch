@@ -18,6 +18,8 @@ use agents::{add_agent, agents_data, agents_page, delete_agent, edit_agent, post
 use core_logic::datastore::Datastore;
 use runs::{runs_data, runs_output, runs_page};
 
+use crate::agents::delete_agents_bulk;
+
 pub struct WebState {
     datastore: Datastore,
 }
@@ -77,7 +79,8 @@ async fn rocket() -> _ {
                 agents_data,
                 post_agents,
                 add_agent,
-                delete_agent
+                delete_agent,
+                delete_agents_bulk,
             ],
         )
         .mount("/", rocket::routes![static_files])
