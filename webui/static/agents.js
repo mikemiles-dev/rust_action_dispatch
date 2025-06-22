@@ -1,14 +1,3 @@
-function applyStatusFilter(status) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('status_filter', status);
-    window.location = url.toString();
-}
-
-function clearStatusFilter() {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('status_filter');
-    window.location = url.toString();
-}
 
 function renderAgentsTable(params = {}) {
     // Append filter string to the URL if provided

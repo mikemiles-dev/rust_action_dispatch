@@ -149,13 +149,18 @@ class FilterUtils {
         }
     }
 
+    static getUrlKey() {
+        return `savedUrlParams_${window.location.pathname.replace(/\//g, '_')}`;
+    }
+
     static saveUrlParamsToSession() {
         const url = new URL(window.location.href);
         const params = {};
         url.searchParams.forEach((value, key) => {
             params[key] = value;
         });
-        sessionStorage.setItem('savedUrlParams', JSON.stringify(params));
+        // Use a unique session key per page based on pathname
+        sessionStorage.setItem(FilterUtils.getUrlKey(), JSON.stringify(params));
     }
 
     static clearFilter() {
@@ -164,7 +169,7 @@ class FilterUtils {
     }
 
     static deleteSavedUrlParamsFromSession() {
-        sessionStorage.removeItem('savedUrlParams');
+        sessionStorage.removeItem(FilterUtils.getUrlKey());
     }
 
     static deleteItemsFromDiv(baseUrl) {
