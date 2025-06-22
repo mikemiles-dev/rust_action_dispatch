@@ -2,34 +2,56 @@
   <link rel="stylesheet" href="/static/flatpickr.min.css">
   <script src="/static/flatpickr.js"></script>
   
+  <script>
+  
+  function setActiveTab(item) {
+    if(item.id === 'relative') {
+      document.getElementById('absolute').style.display = 'none';
+      document.getElementById('range_select').disabled = true;
+      document.getElementById('range_start').disabled = true;
+      document.getElementById('range_end').disabled = true;
+    } else {
+      document.getElementById('absolute').style.display = 'block';
+      document.getElementById('range_select').disabled = false;
+      document.getElementById('range_start').disabled = false;
+      document.getElementById('range_end').disabled = false;
+    }
+  }
+
+  </script>
+
   <div class="search_wrapper">
     <input onchange="FilterUtils.applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" placeholder="Search..." autofocus>
   </div>
 
   <div class="date_tab_wrapper">
-  <button class="date_tab" onclick="#">Relative</button>
-  <button class="date_tab" onclick="#">Absolute</button>
+      <button id="relative" class="date_tab" onclick="javascript:setActiveTab(this);">Relative</button>
+      <button id="absolute" class="date_tab" onclick="javascript:setActiveTab(this);">Absolute</button>
   </div>
+
 
   <div class="range_select">
 
-  <select id="range_select" name="range_select" onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
-    {% for range_field in range_fields %}
-    <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>
-    {% endfor %}
-  </select>
+    <div id="absolute" style="display: none;">
+      <select id="range_select" name="range_select" onchange="FilterUtils.applyFilterAndReload('range_select', this.value, false, true);">
+        {% for range_field in range_fields %}
+        <option value="{{ range_field }}"{% if range_select == range_field %} selected{% endif %}>{{ range_field }}</option>
+        {% endfor %}
+      </select>
 
-  <label for="range_start" style="margin: 0;">From:</label>
-  <input id="range_start" class="date" type="date" style="margin-right: 1em;">
-  <button id="clear_start" class="clear-button" onclick="clearInputById('range_start');">&#10005;</button>
-  <label for="range_end" style="margin: 0;">To:</label>
-  <input id="range_end" class="date" type="date" style="margin-right: 1em;">
-  <button id="clear_end" class="clear-button" onclick="clearInputById('range_end');">&#10005;</button>
+      <label for="range_start" style="margin: 0;">From:</label>
+      <input id="range_start" class="date" type="date" style="margin-right: 1em;">
+      <button id="clear_start" class="clear-button" onclick="clearInputById('range_start');">&#10005;</button>
+      <label for="range_end" style="margin: 0;">To:</label>
+      <input id="range_end" class="date" type="date" style="margin-right: 1em;">
+      <button id="clear_end" class="clear-button" onclick="clearInputById('range_end');">&#10005;</button>
 
-  <div style="float: right">
-    <button class="btn" style="margin-right: 0.5em;" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;">Apply</button>
-    <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
-  </div>
+    </div>
+
+    <div style="float: right">
+      <button class="btn" style="margin-right: 0.5em;" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;">Apply</button>
+      <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
+    </div>
 
   </div>
 
