@@ -118,7 +118,6 @@ pub async fn runs_data(
         relative_select,
         relative_value: relative_select_value.map(|v| v as u64),
         relative_unit: relative_select_unit,
-        ..Default::default()
     };
 
     let runs_page: DataPage<RunsV1> = DataPage::new(state, data_page_params).await;
