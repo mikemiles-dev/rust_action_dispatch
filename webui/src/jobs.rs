@@ -39,7 +39,7 @@ pub async fn jobs_page(
             filter: filter.unwrap_or_default(),
             order: order.unwrap_or_default(),
             outcome_filter: outcome_filter.unwrap_or_default(),
-            page_name: "jobs",
+            page_name: "Jobs",
             relative_select: relative_select.unwrap_or_default(),
             relative_select_value: relative_select_value.unwrap_or(30),
             relative_select_unit: relative_select_unit.unwrap_or_default(),
