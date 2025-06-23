@@ -21,6 +21,7 @@ function renderJobsTable(params = {}) {
                 table += '<th><input type="checkbox" class="item-checkbox"></th>'
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'name', true); return false;\">Job Name</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'description', true); return false;\">Description</a></th>`;
+                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'status', true); return false;\">Status</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'command', true); return false;\">Command</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'next_run', true); return false;\">Next Run</a></th>`;
                 table += '</tr></thead><tbody>';
@@ -32,6 +33,7 @@ function renderJobsTable(params = {}) {
                     table += `<td><input type="checkbox" class="item-checkbox" data-id="${item["_id"]['$oid']}"></td>`;
                     table += `<td>${item["name"]}</td>`;
                     table += `<td>${item["description"]}</td>`;
+                    table += `<td>${item["status"]}</td>`;
                     const command = item["command"] || "";
                     const shortCommand = command.length > 10 ? command.substring(0, 10) + "..." : command;
                     const commandId = `command-${item["_id"]['$oid']}`;
