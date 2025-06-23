@@ -12,12 +12,15 @@ use crate::data_page::{DataPage, DataPageParams};
 
 #[allow(clippy::too_many_arguments)]
 #[get(
-    "/runs?<page>&<range_select>&<range_start>&<range_end>&<filter>&<outcome_filter>&<sort>&<order>"
+    "/runs?<page>&<range_select>&<relative_select>&<relative_select_value>&<relative_select_unit>&<range_start>&<range_end>&<filter>&<outcome_filter>&<sort>&<order>"
 )]
 pub async fn runs_page(
     range_start: Option<u64>,
     range_end: Option<u64>,
     range_select: Option<String>,
+    relative_select: Option<String>,
+    relative_select_value: Option<u8>,
+    relative_select_unit: Option<String>,
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
@@ -32,11 +35,14 @@ pub async fn runs_page(
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
             range_select: range_select.unwrap_or_default(),
-            range_fields: vec!["start_time".to_string(), "end_time".to_string()], // Assuming these are the fields for range filtering
+            range_fields: vec!["started_at".to_string(), "completed_at".to_string()], // Assuming these are the fields for range filtering
             filter: filter.unwrap_or_default(),
             order: order.unwrap_or_default(),
             outcome_filter: outcome_filter.unwrap_or_default(),
             page_name: "Runs",
+            relative_select: relative_select.unwrap_or_default(),
+            relative_select_value: relative_select_value.unwrap_or(0),
+            relative_select_unit: relative_select_unit.unwrap_or_default(),
         },
     )
 }
@@ -69,12 +75,18 @@ pub async fn runs_output(state: &State<WebState>, id: Option<String>) -> String 
 }
 
 #[allow(clippy::too_many_arguments)]
-#[get("/runs_data?<page>&<range_start>&<range_end>&<filter>&<sort>&<outcome_filter>&<order>")]
+#[get(
+    "/runs_data?<page>&<range_select>&<relative_select>&<relative_select_value>&<relative_select_unit>&<range_start>&<range_end>&<filter>&<sort>&<outcome_filter>&<order>"
+)]
 pub async fn runs_data(
     state: &State<WebState>,
     page: Option<u32>,
-    range_start: Option<u64>,
+    range_select: Option<String>,
     range_end: Option<u64>,
+    range_start: Option<u64>,
+    relative_select: Option<String>,
+    relative_select_value: Option<u8>,
+    relative_select_unit: Option<String>,
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
@@ -84,6 +96,7 @@ pub async fn runs_data(
         collection: "runs".to_string(),
         range_start,
         range_end,
+        range_field: range_select,
         search_fields: vec![
             "job_name".to_string(),
             "agent_name".to_string(),
@@ -102,6 +115,9 @@ pub async fn runs_data(
         },
         sort: sort.clone(),
         order,
+        relative_select,
+        relative_value: relative_select_value.map(|v| v as u64),
+        relative_unit: relative_select_unit,
         ..Default::default()
     };
 

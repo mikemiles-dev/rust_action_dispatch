@@ -30,8 +30,6 @@
     <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
   </div>
 
-{{ range_select}}
-
   <div class="date_tab_wrapper">
     <button id="relative_tab" class="date_tab{% if relative_select == 'relative' %} active{% endif %}" onclick="javascript:setActiveTab(this);">Relative</button>
     <button id="absolute_tab" class="date_tab{% if relative_select == 'absolute' %} active{% endif %}" onclick="javascript:setActiveTab(this);">Absolute</button>

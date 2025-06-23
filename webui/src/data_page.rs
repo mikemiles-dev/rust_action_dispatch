@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use crate::WebState;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct DataPageParams {
     pub collection: String,
     pub range_field: Option<String>,
@@ -24,6 +24,21 @@ pub struct DataPageParams {
     pub relative_select: Option<String>, // "absolute" or "relative"
     pub relative_value: Option<u64>,
     pub relative_unit: Option<String>, // "seconds", "minutes", "hours", "days", "weeks"
+}
+
+pub enum RelativeSelect {
+    Absolute,
+    Relative,
+}
+
+impl From<&str> for RelativeSelect {
+    fn from(value: &str) -> Self {
+        match value {
+            "absolute" => RelativeSelect::Absolute,
+            "relative" => RelativeSelect::Relative,
+            _ => RelativeSelect::Absolute, // Default to absolute if unknown
+        }
+    }
 }
 
 pub struct DataPage<T> {
@@ -140,10 +155,15 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             doc! {}
         };
 
+        let relative_select: RelativeSelect =
+            relative_select.as_deref().unwrap_or("absolute").into();
+
+        println!("RANGE FIELD: {:?}", range_field);
+
+        // Handle additional filters
         if let Some(field) = range_field {
             let mut range_doc = doc! {};
-            let use_relative = relative_select.as_deref() == Some("relative");
-            if use_relative {
+            if matches!(relative_select, RelativeSelect::Relative) {
                 if let (Some(value), Some(unit)) = (relative_value, relative_unit) {
                     let duration = match unit.as_str() {
                         "seconds" => Duration::seconds(value as i64),
@@ -166,6 +186,7 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
                     range_doc.insert("$lte", DateTime::from_millis(range_end as i64));
                 }
             }
+            println!("BBB range_doc: {:?}", range_doc);
             if !range_doc.is_empty() {
                 filter.insert(field, range_doc);
             }
