@@ -158,26 +158,24 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         let relative_select: RelativeSelect =
             relative_select.as_deref().unwrap_or("absolute").into();
 
-        println!("RANGE FIELD: {:?}", range_field);
-
         // Handle additional filters
         if let Some(field) = range_field {
             let mut range_doc = doc! {};
             if matches!(relative_select, RelativeSelect::Relative) {
-                if let (Some(value), Some(unit)) = (relative_value, relative_unit) {
-                    let duration = match unit.as_str() {
-                        "seconds" => Duration::seconds(value as i64),
-                        "minutes" => Duration::minutes(value as i64),
-                        "hours" => Duration::hours(value as i64),
-                        "days" => Duration::days(value as i64),
-                        "weeks" => Duration::weeks(value as i64),
-                        _ => Duration::seconds(0),
-                    };
-                    let now = Utc::now();
-                    let start = now - duration;
-                    range_doc.insert("$gte", DateTime::from_millis(start.timestamp_millis()));
-                    range_doc.insert("$lte", DateTime::from_millis(now.timestamp_millis()));
-                }
+                let value = relative_value.unwrap_or(30);
+                let unit = relative_unit.unwrap_or("seconds".to_string());
+                let duration = match unit.as_str() {
+                    "seconds" => Duration::seconds(value as i64),
+                    "minutes" => Duration::minutes(value as i64),
+                    "hours" => Duration::hours(value as i64),
+                    "days" => Duration::days(value as i64),
+                    "weeks" => Duration::weeks(value as i64),
+                    _ => Duration::seconds(0),
+                };
+                let now = Utc::now();
+                let start = now - duration;
+                range_doc.insert("$gte", DateTime::from_millis(start.timestamp_millis()));
+                range_doc.insert("$lte", DateTime::from_millis(now.timestamp_millis()));
             } else {
                 if let Some(range_start) = range_start {
                     range_doc.insert("$gte", DateTime::from_millis(range_start as i64));
@@ -186,7 +184,6 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
                     range_doc.insert("$lte", DateTime::from_millis(range_end as i64));
                 }
             }
-            println!("BBB range_doc: {:?}", range_doc);
             if !range_doc.is_empty() {
                 filter.insert(field, range_doc);
             }

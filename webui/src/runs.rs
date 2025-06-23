@@ -92,11 +92,14 @@ pub async fn runs_data(
     order: Option<String>,
     outcome_filter: Option<String>,
 ) -> Json<serde_json::Value> {
+    let range_select = range_select
+        .clone()
+        .unwrap_or_else(|| "started_at".to_string());
     let data_page_params = DataPageParams {
         collection: "runs".to_string(),
         range_start,
         range_end,
-        range_field: range_select,
+        range_field: Some(range_select),
         search_fields: vec![
             "job_name".to_string(),
             "agent_name".to_string(),
