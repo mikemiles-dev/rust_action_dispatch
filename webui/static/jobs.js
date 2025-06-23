@@ -19,12 +19,9 @@ function renderJobsTable(params = {}) {
                 // Get table headers from object keys
                 let table = '<table><thead><tr>';
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'name', true); return false;\">Job Name</a></th>`;
-                // table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'agent_name', true); return false;\">Agent Name</a></th>`;
-                // table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'command', true); return false;\">Command</a></th>`;
-                // table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'return_code', true); return false;\">Return Code</a></th>`;
-                // table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'outcome', true); return false;\">Outcome</a></th>`;
-                // table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'started_at', true); return false;\">Started At</a></th>`;
-                // table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'completed_at', true); return false;\">Completed At</a></th>`;
+                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'description', true); return false;\">Description</a></th>`;
+                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'command', true); return false;\">Command</a></th>`;
+                table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'next_run', true); return false;\">Next Run</a></th>`;
                 table += '</tr></thead><tbody>';
 
                 // Add table rows
@@ -33,7 +30,7 @@ function renderJobsTable(params = {}) {
                     let next_run = item["next_run"];//.$date.$numberLong;
                     table += '<tr>';
                     table += `<td>${item["name"]}</td>`;
-                    table += `<td>${item["agent_name"]}</td>`;
+                    table += `<td>${item["description"]}</td>`;
                     const command = item["command"] || "";
                     const shortCommand = command.length > 10 ? command.substring(0, 10) + "..." : command;
                     const commandId = `command-${item["_id"]['$oid']}`;
