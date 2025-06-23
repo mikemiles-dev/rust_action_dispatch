@@ -1,0 +1,30 @@
+{% extends "layout" %}
+
+{% block page %}
+  <h1>Jobs</h1>
+
+  {% include "filter" %}
+
+  <div id="items">
+  </div>
+
+  <script src="/static/pagination.js"></script>
+  <script src="/static/jobs.js"></script>
+
+  <script>
+    renderJobsTable({ filter: "{{ filter }}",
+                      sort: "{{ sort }}",
+                      order: "{{ order }}",
+                      page: "{{ page }}",
+                      outcome_filter: "{{ outcome_filter }}",
+                      range_start: "{{ range_start }}",
+                      range_end: "{{ range_end }}",
+                      range_select: "{{ range_select }}",
+                      relative_select: "{{ relative_select }}",
+                      relative_select_value: "{{ relative_select_value }}",
+                      relative_select_unit: "{{ relative_select_unit }}",
+      });
+  </script>
+
+ 
+{% endblock %}

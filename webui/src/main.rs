@@ -1,5 +1,6 @@
 mod agents;
 mod data_page;
+mod jobs;
 mod runs;
 
 use rocket::fs::NamedFile;
@@ -14,11 +15,12 @@ use rocket_dyn_templates::{Template, context, minijinja::Environment};
 use std::env;
 use std::path::{Path, PathBuf};
 
-use agents::{add_agent, agents_data, agents_page, delete_agent, edit_agent, post_agents};
+use agents::{
+    add_agent, agents_data, agents_page, delete_agent, delete_agents_bulk, edit_agent, post_agents,
+};
 use core_logic::datastore::Datastore;
+use jobs::{jobs_data, jobs_page};
 use runs::{runs_data, runs_output, runs_page};
-
-use crate::agents::delete_agents_bulk;
 
 pub struct WebState {
     datastore: Datastore,
@@ -81,6 +83,8 @@ async fn rocket() -> _ {
                 add_agent,
                 delete_agent,
                 delete_agents_bulk,
+                jobs_data,
+                jobs_page,
             ],
         )
         .mount("/", rocket::routes![static_files])
