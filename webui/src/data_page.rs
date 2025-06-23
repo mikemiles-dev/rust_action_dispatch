@@ -1,4 +1,5 @@
 use bson::{DateTime, doc};
+use chrono::{Duration, Utc};
 use futures::StreamExt;
 use mongodb::options::FindOptions;
 use rocket::State;
@@ -10,7 +11,7 @@ use crate::WebState;
 #[derive(Default)]
 pub struct DataPageParams {
     pub collection: String,
-    pub range_field: Option<String>, // <-- Use this instead of range_start_key and range_end_key
+    pub range_field: Option<String>,
     pub range_start: Option<u64>,
     pub range_end: Option<u64>,
     pub search_fields: Vec<String>,
@@ -19,6 +20,10 @@ pub struct DataPageParams {
     pub additional_filters: Option<HashMap<String, String>>,
     pub sort: Option<String>,
     pub order: Option<String>,
+    // New fields for relative selection
+    pub relative_select: Option<String>, // "absolute" or "relative"
+    pub relative_value: Option<u64>,
+    pub relative_unit: Option<String>, // "seconds", "minutes", "hours", "days", "weeks"
 }
 
 pub struct DataPage<T> {
@@ -28,7 +33,6 @@ pub struct DataPage<T> {
 }
 
 impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
-    /// Fetch a paginated list of items from a MongoDB collection
     pub async fn new(state: &State<WebState>, params: DataPageParams) -> DataPage<T> {
         let collection = state
             .datastore
@@ -48,12 +52,23 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
             params.range_field.clone(),
             params.range_start,
             params.range_end,
+            params.relative_select.clone(),
+            params.relative_value,
+            params.relative_unit.clone(),
         );
 
         if let Some(additional_filters) = &params.additional_filters {
             for (key, value) in additional_filters {
-                let addtional_filter_doc =
-                    Self::build_filter(value.clone(), vec![key.clone()], None, None, None);
+                let addtional_filter_doc = Self::build_filter(
+                    value.clone(),
+                    vec![key.clone()],
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                );
                 filter_doc = doc! {
                     "$and": [filter_doc, addtional_filter_doc]
                 };
@@ -95,6 +110,9 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         range_field: Option<String>,
         range_start: Option<u64>,
         range_end: Option<u64>,
+        relative_select: Option<String>,
+        relative_value: Option<u64>,
+        relative_unit: Option<String>,
     ) -> bson::Document {
         let mut filter = if !filter_str.trim().is_empty() {
             let regex = doc! { "$regex": &filter_str, "$options": "i" };
@@ -123,11 +141,29 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
 
         if let Some(field) = range_field {
             let mut range_doc = doc! {};
-            if let Some(range_start) = range_start {
-                range_doc.insert("$gte", DateTime::from_millis(range_start as i64));
-            }
-            if let Some(range_end) = range_end {
-                range_doc.insert("$lte", DateTime::from_millis(range_end as i64));
+            let use_relative = relative_select.as_deref() == Some("relative");
+            if use_relative {
+                if let (Some(value), Some(unit)) = (relative_value, relative_unit) {
+                    let duration = match unit.as_str() {
+                        "seconds" => Duration::seconds(value as i64),
+                        "minutes" => Duration::minutes(value as i64),
+                        "hours" => Duration::hours(value as i64),
+                        "days" => Duration::days(value as i64),
+                        "weeks" => Duration::weeks(value as i64),
+                        _ => Duration::seconds(0),
+                    };
+                    let now = Utc::now();
+                    let start = now - duration;
+                    range_doc.insert("$gte", DateTime::from_millis(start.timestamp_millis()));
+                    range_doc.insert("$lte", DateTime::from_millis(now.timestamp_millis()));
+                }
+            } else {
+                if let Some(range_start) = range_start {
+                    range_doc.insert("$gte", DateTime::from_millis(range_start as i64));
+                }
+                if let Some(range_end) = range_end {
+                    range_doc.insert("$lte", DateTime::from_millis(range_end as i64));
+                }
             }
             if !range_doc.is_empty() {
                 filter.insert(field, range_doc);

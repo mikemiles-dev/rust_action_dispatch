@@ -10,6 +10,7 @@ repository.workspace = true
 
 [dependencies]
 bson.workspace = true
+chrono.workspace = true
 core-logic.workspace = true
 futures.workspace = true
 mongodb.workspace = true

@@ -126,10 +126,15 @@ pub async fn agents_page(
 }
 
 #[allow(clippy::too_many_arguments)]
-#[get("/agents/data?<page>&<range_start>&<range_end>&<filter>&<sort>&<order>&<status_filter>")]
+#[get(
+    "/agents/data?<page>&<relative_select>&<relative_select_value>&<relative_select_unit>&<range_start>&<range_end>&<filter>&<sort>&<order>&<status_filter>"
+)]
 pub async fn agents_data(
     state: &State<WebState>,
     page: Option<u32>,
+    relative_select: Option<String>,
+    relative_select_value: Option<u8>,
+    relative_select_unit: Option<String>,
     range_start: Option<u64>,
     range_end: Option<u64>,
     filter: Option<String>,
@@ -160,6 +165,9 @@ pub async fn agents_data(
         filter: filter.clone(),
         sort: sort.clone(),
         order,
+        relative_select,
+        relative_value: relative_select_value.map(|v| v as u64),
+        relative_unit: relative_select_unit,
     };
 
     let runs_page: DataPage<AgentV1> = DataPage::new(state, data_page_params).await;
