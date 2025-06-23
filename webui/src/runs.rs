@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use crate::WebState;
 use crate::data_page::{DataPage, DataPageParams};
 
+#[allow(clippy::too_many_arguments)]
 #[get(
     "/runs?<page>&<range_select>&<range_start>&<range_end>&<filter>&<outcome_filter>&<sort>&<order>"
 )]

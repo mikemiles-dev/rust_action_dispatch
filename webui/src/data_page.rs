@@ -104,6 +104,7 @@ impl<T: Send + Sync + for<'de> serde::Deserialize<'de>> DataPage<T> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_filter(
         filter_str: String,
         search_fields: Vec<String>,
