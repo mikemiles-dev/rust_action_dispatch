@@ -41,7 +41,7 @@ pub async fn runs_page(
             outcome_filter: outcome_filter.unwrap_or_default(),
             page_name: "Runs",
             relative_select: relative_select.unwrap_or_default(),
-            relative_select_value: relative_select_value.unwrap_or(0),
+            relative_select_value: relative_select_value.unwrap_or(30),
             relative_select_unit: relative_select_unit.unwrap_or_default(),
         },
     )

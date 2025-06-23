@@ -26,7 +26,6 @@ pub async fn post_agents(
     state: &State<WebState>,
     form: Form<AgentForm>,
 ) -> Result<String, (rocket::http::Status, String)> {
-    println!("Received form: {:?}", form);
     let agent_collection = state
         .datastore
         .get_collection::<AgentV1>("agents")
@@ -115,7 +114,7 @@ pub async fn agents_page(
             range_end: range_end.unwrap_or_default(),
             range_fields: vec!["last_ping".to_string()], // Assuming last_ping is the field for range filtering
             relative_select: relative_select.unwrap_or_default(),
-            relative_select_value: relative_select_value.unwrap_or(0),
+            relative_select_value: relative_select_value.unwrap_or(30),
             relative_select_unit: relative_select_unit.unwrap_or_default(),
             current_page: page,
             filter: filter.unwrap_or_default(),
