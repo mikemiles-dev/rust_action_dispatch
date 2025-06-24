@@ -24,6 +24,7 @@ function renderJobsTable(params = {}) {
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'status', true); return false;\">Status</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'command', true); return false;\">Command</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'next_run', true); return false;\">Next Run</a></th>`;
+                table += `<th>Runs</th>`;
                 table += '</tr></thead><tbody>';
 
                 // Add table rows
@@ -50,6 +51,7 @@ function renderJobsTable(params = {}) {
                         " data-expanded="false">${shortCommand}</span>
                     </td>`;
                     table += `<td class="utc-date" data-timestamp="${next_run}">${next_run}</td>`;
+                    table += '<td><button class="btn btn-primary" onclick="#">View Runs</button></td>'
                     table += '</tr>';
                 });
 
