@@ -35,7 +35,7 @@ pub async fn jobs_page(
             range_start: range_start.unwrap_or_default(),
             range_end: range_end.unwrap_or_default(),
             range_select: range_select.unwrap_or_default(),
-            range_fields: vec!["started_at".to_string(), "completed_at".to_string()], // Assuming these are the fields for range filtering
+            range_fields: vec!["next_run".to_string()],
             filter: filter.unwrap_or_default(),
             order: order.unwrap_or_default(),
             outcome_filter: outcome_filter.unwrap_or_default(),
