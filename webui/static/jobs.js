@@ -34,7 +34,30 @@ function renderJobsTable(params = {}) {
                     table += `<td><input type="checkbox" class="item-checkbox" data-id="${item["_id"]['$oid']}"></td>`;
                     table += `<td>${item["name"]}</td>`;
                     table += `<td>${item["description"]}</td>`;
-                    table += `<td>${item["status"]}</td>`;
+                    let statusText = "";
+                    let statusColor = "";
+                    switch (item["status"]) {
+                        case 0:
+                            statusText = "Unscheduled";
+                            statusColor = "orange";
+                            break;
+                        case 1:
+                            statusText = "Running";
+                            statusColor = "blue";
+                            break;
+                        case 2:
+                            statusText = "Completed";
+                            statusColor = "green";
+                            break;
+                        case 3:
+                            statusText = "Error";
+                            statusColor = "red";
+                            break;
+                        default:
+                            statusText = item["status"];
+                            statusColor = "";
+                    }
+                    table += `<td style="color:${statusColor};">${statusText}</td>`;
                     const command = item["command"] || "";
                     const shortCommand = command.length > 10 ? command.substring(0, 10) + "..." : command;
                     const commandId = `command-${item["_id"]['$oid']}`;
