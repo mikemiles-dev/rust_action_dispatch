@@ -31,6 +31,7 @@
   </div>
 
   <div class="date_tab_wrapper">
+    <button id="none_tab" class="date_tab{% if relative_select != 'absolute' and relative_select != 'relative' %} active{% endif %}" onclick="javascript:FilterUtils.deleteUrlParam('relative_select');">Default</button>
     <button id="relative_tab" class="date_tab{% if relative_select == 'relative' %} active{% endif %}" onclick="javascript:setActiveTab(this);">Relative</button>
     <button id="absolute_tab" class="date_tab{% if relative_select == 'absolute' %} active{% endif %}" onclick="javascript:setActiveTab(this);">Absolute</button>
   </div>

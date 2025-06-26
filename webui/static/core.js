@@ -170,6 +170,12 @@ class FilterUtils {
         window.location.href = window.location.pathname;
     }
 
+    static deleteUrlParam(paramName) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete(paramName);
+        window.location.href = url.toString();
+    }
+
     static deleteSavedUrlParamsFromSession() {
         sessionStorage.removeItem(FilterUtils.getUrlKey());
     }
