@@ -12,7 +12,7 @@ use crate::data_page::{DataPage, DataPageParams};
 
 #[allow(clippy::too_many_arguments)]
 #[get(
-    "/jobs?<page>&<range_select>&<relative_select>&<relative_select_value>&<relative_select_unit>&<range_start>&<range_end>&<filter>&<outcome_filter>&<sort>&<order>"
+    "/jobs?<page>&<range_select>&<status_filter>&<relative_select>&<relative_select_value>&<relative_select_unit>&<range_start>&<range_end>&<filter>&<outcome_filter>&<sort>&<order>"
 )]
 pub async fn jobs_page(
     range_start: Option<u64>,
@@ -23,6 +23,7 @@ pub async fn jobs_page(
     relative_select_unit: Option<String>,
     filter: Option<String>,
     sort: Option<String>,
+    status_filter: Option<String>,
     order: Option<String>,
     outcome_filter: Option<String>,
     page: Option<u32>,
@@ -43,6 +44,7 @@ pub async fn jobs_page(
             relative_select: relative_select.unwrap_or_default(),
             relative_select_value: relative_select_value.unwrap_or(30),
             relative_select_unit: relative_select_unit.unwrap_or_default(),
+            status_filter: status_filter.unwrap_or_default(),
         },
     )
 }
