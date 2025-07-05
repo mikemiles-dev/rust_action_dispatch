@@ -24,7 +24,7 @@ function renderJobsTable(params = {}) {
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'status', true); return false;\">Status</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'command', true); return false;\">Command</a></th>`;
                 table += `<th><a href=\"#\" class=\"sort_column\" onclick=\"FilterUtils.applyFilterAndReload('sort', 'next_run', true); return false;\">Next Run</a></th>`;
-                table += `<th>Runs</th>`;
+                table += `<th></th>`;
                 table += '</tr></thead><tbody>';
 
                 // Add table rows
@@ -43,13 +43,17 @@ function renderJobsTable(params = {}) {
                             break;
                         case 1:
                             statusText = "Running";
-                            statusColor = "blue";
+                            statusColor = "light-blue";
                             break;
                         case 2:
                             statusText = "Completed";
                             statusColor = "green";
                             break;
                         case 3:
+                            statusText = "Frozen";
+                            statusColor = "blue";
+                            break;
+                        case 4:
                             statusText = "Error";
                             statusColor = "red";
                             break;
@@ -74,7 +78,11 @@ function renderJobsTable(params = {}) {
                         " data-expanded="false">${shortCommand}</span>
                     </td>`;
                     table += `<td class="utc-date" data-timestamp="${next_run}">${next_run}</td>`;
-                    table += '<td><button class="btn btn-primary" onclick="#">View Runs</button></td>'
+                    table += '<td>';
+                    table += '<button class="btn btn-primary" onclick="#">Runs</button>&nbsp';
+                    table += '<button class="btn btn-primary" onclick="#">Kill</button>&nbsp';
+                    table += '<button class="btn btn-primary" onclick="#">Freeze</button>';
+                    table += '</td>';
                     table += '</tr>';
                 });
 

@@ -10,7 +10,8 @@ pub enum Status {
     Pending = 0,
     Running = 1,
     Completed = 2,
-    Error = 3,
+    Frozen = 3,
+    Error = 4,
 }
 
 // Implementation to convert from i32 to Status
@@ -20,7 +21,8 @@ impl From<i32> for Status {
             0 => Status::Pending,
             1 => Status::Running,
             2 => Status::Completed,
-            3 => Status::Error,
+            3 => Status::Frozen,
+            4 => Status::Error,
             _ => {
                 // Handle unknown values gracefully (e.g., default to Error or Pending)
                 // Or panic if an invalid status is truly an unrecoverable error.

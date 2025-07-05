@@ -5,6 +5,24 @@
 
   {% include "filter" %}
 
+  <br>
+  <a href="#" class="btn" onclick="window.location.href = '/jobs/add'; return false;">Add Job</a>
+  <a href="#" class="btn" onclick="javascript:FilterUtils.deleteItemsFromDiv('/jobs');">Delete Displayed</a>
+
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '');" type="radio" id="clear_filter" name="job_status_filter" value="-1" {% if status_filter is not defined or status_filter != '1' or status_filter != '0' %}checked{% endif %}>
+  <label for="online_filter">All</label>
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '1');" type="radio" id="online_filter" name="job_status_filter" value="1" {% if status_filter is defined and status_filter == '1' %}checked{% endif %}>
+  <label for="online_filter">Pending</label>
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '0');" type="radio" id="offline_filter" name="job_status_filter" value="0" {% if status_filter is defined and status_filter == '0' %}checked{% endif %}> 
+  <label for="offline_filter">Running</label>
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '0');" type="radio" id="offline_filter" name="job_status_filter" value="0" {% if status_filter is defined and status_filter == '0' %}checked{% endif %}> 
+  <label for="offline_filter">Completed</label>
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '0');" type="radio" id="offline_filter" name="job_status_filter" value="0" {% if status_filter is defined and status_filter == '0' %}checked{% endif %}> 
+  <label for="offline_filter">Frozen</label>
+  <input onchange="FilterUtils.applyFilterAndReload('status_filter', '0');" type="radio" id="offline_filter" name="job_status_filter" value="0" {% if status_filter is defined and status_filter == '0' %}checked{% endif %}> 
+  <label for="offline_filter">Error</label>
+  <br><br>
+
   <div id="items">
   </div>
 
