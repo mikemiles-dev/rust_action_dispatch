@@ -26,8 +26,19 @@
     <input onchange="FilterUtils.applyFilterAndReload('filter', this.value, false, true); return false" class="search" name="search" value="{{ filter }}" placeholder="Search..." autofocus>
   </div>
   <div style="float: right">
-    <button class="btn" style="margin-right: 0.5em;" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;"><img width="10px" height="10px" src="/static/refresh.png">&nbsp;Refresh</button>
-    <button class="btn" onclick="javascript:FilterUtils.clearFilter();"" return false;">Clear</button>
+    <label style="margin-right: 1em;">
+      <input type="checkbox" id="disable_auto_reload" checked onchange="
+      if(!this.checked) {
+        TimeOutWrapper.haltAllTimeouts();
+      } else {
+        FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true);
+      }
+      return false;
+      ">
+      Auto Refresh
+    </label>
+    <button class="btn" onclick="FilterUtils.applyFilterAndReload('filter', document.querySelector('input[name=search]').value, false, true); return false;"><img width="10px" height="10px" src="/static/refresh.png">&nbsp;Reload</button>
+    <button class="btn" onclick="javascript:FilterUtils.clearFilter(); return false;">Clear</button>
   </div>
 
   <div class="date_tab_wrapper">

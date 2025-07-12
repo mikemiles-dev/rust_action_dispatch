@@ -98,13 +98,13 @@ function renderJobsTable(params = {}) {
             }
 
             // Auto-refresh the table every 10 seconds
-            setTimeout(() => renderJobsTable(params), 10000);
+            TimeOutWrapper.createMyTimeout(() => renderJobsTable(params), 10000);
         })
         .catch(error => {
             const container = document.getElementById("items");
             if (container) {
                 container.innerHTML = `<p>Error loading data: ${error.message}</p>`;
             }
-            setTimeout(() => renderJobsTable(params), 10000);
+            TimeOutWrapper.createMyTimeout(() => renderJobsTable(params), 10000);
         });
 }

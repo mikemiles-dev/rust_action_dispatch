@@ -28,6 +28,31 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+let activeTimeouts = [];
+
+class TimeOutWrapper {
+    static createMyTimeout(callback, delay) {
+        const id = setTimeout(() => {
+            callback();
+            // Optionally remove the ID from the array once it executes
+            const index = activeTimeouts.indexOf(id);
+            if (index > -1) {
+                activeTimeouts.splice(index, 1);
+            }
+        }, delay);
+        activeTimeouts.push(id);
+        return id; // Still return the ID if you need to clear individual ones
+    }
+
+    static haltAllTimeouts() {
+        activeTimeouts.forEach(id => {
+            clearTimeout(id);
+        });
+        activeTimeouts = []; // Clear the array after clearing all timeouts
+        console.log("All timeouts halted!");
+    }
+}
+
 class DateTimeUtils {
     static formatUtcDate(timestamp) {
         if (isNaN(timestamp)) return '';
