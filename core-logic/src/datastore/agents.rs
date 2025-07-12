@@ -9,8 +9,8 @@ use tracing::error;
 
 use std::error::Error;
 
-use crate::communications::RegisterAgent;
 use crate::datastore::Datastore;
+use crate::messages::RegisterAgent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(i32)]

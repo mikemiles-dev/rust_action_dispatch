@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use std::error::Error;
 
-use crate::communications::{JobComplete, JobOutCome};
+use crate::messages::{JobComplete, JobOutCome};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(i32)]

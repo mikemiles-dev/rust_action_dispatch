@@ -51,12 +51,12 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use std::time::Duration;
 
-use core_logic::communications::{DispatchJob, Message, MessageError};
 use core_logic::datastore::{
     Datastore,
     agents::{AgentV1, Status as AgentStatus},
     jobs::{JobV1, Status},
 };
+use core_logic::messages::{DispatchJob, Message, MessageError};
 use tokio::io::AsyncReadExt;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]

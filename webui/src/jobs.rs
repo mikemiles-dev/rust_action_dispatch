@@ -51,7 +51,7 @@ pub async fn jobs_page(
 
 #[allow(clippy::too_many_arguments)]
 #[get(
-    "/jobs_data?<page>&<range_select>&<relative_select>&<relative_select_value>&<relative_select_unit>&<range_start>&<range_end>&<filter>&<sort>&<outcome_filter>&<order>"
+    "/jobs_data?<page>&<range_select>&<relative_select>&<relative_select_value>&<relative_select_unit>&<range_start>&<range_end>&<filter>&<sort>&<status_filter>&<order>"
 )]
 pub async fn jobs_data(
     state: &State<WebState>,
@@ -65,7 +65,7 @@ pub async fn jobs_data(
     filter: Option<String>,
     sort: Option<String>,
     order: Option<String>,
-    outcome_filter: Option<String>,
+    status_filter: Option<String>,
 ) -> Json<serde_json::Value> {
     let range_select = range_select
         .clone()
@@ -84,9 +84,9 @@ pub async fn jobs_data(
         ],
         page,
         filter: filter.clone(),
-        additional_filters: if outcome_filter.is_some() {
+        additional_filters: if status_filter.is_some() {
             let mut filters = HashMap::new();
-            filters.insert("outcome".to_string(), outcome_filter.unwrap());
+            filters.insert("status".to_string(), status_filter.unwrap());
             Some(filters)
         } else {
             None

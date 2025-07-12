@@ -54,7 +54,7 @@ use std::io;
 use std::sync::Arc;
 use std::{env, sync::OnceLock};
 
-use core_logic::communications::{Message, RegisterAgent};
+use core_logic::messages::{Message, RegisterAgent};
 
 pub const SERVER_ADDRESS: &str = "127.0.0.1:8080";
 pub const VERSION: &str = "0.1.0";

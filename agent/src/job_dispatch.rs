@@ -29,7 +29,7 @@ use tokio::sync::mpsc::{self, Sender};
 use tracing::{error, info};
 
 use crate::{CentralCommandWriter, get_agent_name};
-use core_logic::communications::{DispatchJob, JobComplete, JobOutCome, Message};
+use core_logic::messages::{DispatchJob, JobComplete, JobOutCome, Message};
 
 pub struct JobDispatcher {
     sender: Sender<JobComplete>,

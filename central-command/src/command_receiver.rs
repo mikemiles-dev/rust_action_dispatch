@@ -35,8 +35,8 @@
 /// ```
 use bson::{Array, Document, doc};
 use core_logic::{
-    communications::{JobComplete, Message, RegisterAgent},
     datastore::runs::RunsV1,
+    messages::{JobComplete, Message, RegisterAgent},
 };
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
